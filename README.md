@@ -100,3 +100,14 @@ kubectl logs -n homelab deploy/wc2026bot --tail 20
 ## License
 
 MIT
+
+## ArgoCD UI
+
+Available at: `https://192.168.50.212:30808`
+Login: `admin`
+Password: stored in `argocd-initial-admin-secret` (run `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d`)
+
+ArgoCD server exposed via NodePort 30808:
+```bash
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort", "ports": [{"port": 443, "targetPort": 8080, "nodePort": 30808, "name": "https"}]}}'
+```
