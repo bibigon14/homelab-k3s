@@ -1,0 +1,19 @@
+image:
+  repository: redis
+  tag: 7-alpine
+
+service:
+  type: ClusterIP
+  port: 6379
+
+persistence:
+  size: 1Gi
+  storageClassName: local-path
+
+resources:
+  requests:
+    memory: "32Mi"
+    cpu: "50m"
+  limits:
+    memory: "128Mi"
+    cpu: "200m"
