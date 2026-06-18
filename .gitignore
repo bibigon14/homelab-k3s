@@ -1,2 +1,5 @@
 charts/*/values.secret.yaml
 !certs/ca.crt
+certs/*.key
+certs/*.csr
+certs/*.srl
