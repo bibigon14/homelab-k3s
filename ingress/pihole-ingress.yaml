@@ -41,13 +41,13 @@ spec:
   routes:
     - match: Host(`pihole.homelab.local`) && Path(`/`)
       kind: Rule
-      priority: 20
+      priority: 30
       middlewares:
         - name: pihole-redirect
       services:
         - name: pihole-external
           port: 8090
-    - match: Host(`pihole.homelab.local`) && PathPrefix(`/admin`)
+    - match: Host(`pihole.homelab.local`)
       kind: Rule
       priority: 10
       services:
