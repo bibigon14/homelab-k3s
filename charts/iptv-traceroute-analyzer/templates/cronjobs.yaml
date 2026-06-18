@@ -1,0 +1,103 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "iptv.fullname" . }}-influx-writer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "iptv.labels" . | nindent 4 }}
+spec:
+  schedule: "{{ .Values.schedules.influxWriter }}"
+  timeZone: "{{ .Values.timezone }}"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: influx-writer
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              args: ["influx_writer.py"]
+              envFrom:
+                - secretRef:
+                    name: {{ include "iptv.fullname" . }}-env
+              securityContext:
+                capabilities:
+                  add: ["NET_RAW", "NET_ADMIN"]
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "iptv.fullname" . }}-notify
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "iptv.labels" . | nindent 4 }}
+spec:
+  schedule: "{{ .Values.schedules.notify }}"
+  timeZone: "{{ .Values.timezone }}"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: notify
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              args: ["notify.py"]
+              envFrom:
+                - secretRef:
+                    name: {{ include "iptv.fullname" . }}-env
+              env:
+                - name: REDIS_HOST
+                  value: "{{ .Values.redis.host }}"
+                - name: REDIS_PORT
+                  value: "{{ .Values.redis.port }}"
+              securityContext:
+                capabilities:
+                  add: ["NET_RAW", "NET_ADMIN"]
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "iptv.fullname" . }}-auto-switch
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "iptv.labels" . | nindent 4 }}
+spec:
+  schedule: "{{ .Values.schedules.autoSwitch }}"
+  timeZone: "{{ .Values.timezone }}"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: auto-switch
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              args: ["auto_switch.py"]
+              envFrom:
+                - secretRef:
+                    name: {{ include "iptv.fullname" . }}-env
+              securityContext:
+                capabilities:
+                  add: ["NET_RAW", "NET_ADMIN"]
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}

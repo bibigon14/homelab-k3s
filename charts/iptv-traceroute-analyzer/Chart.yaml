@@ -1,0 +1,6 @@
+apiVersion: v2
+name: iptv-traceroute-analyzer
+description: IPTV monitoring CronJobs with traceroute and Telegram notifications
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
