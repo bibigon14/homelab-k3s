@@ -1,0 +1,112 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: iptv-influx-writer
+  namespace: homelab
+spec:
+  schedule: "*/30 * * * *"
+  timeZone: "America/Los_Angeles"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: influx-writer
+              image: iptv-traceroute-analyzer:latest
+              imagePullPolicy: Never
+              args: ["influx_writer.py"]
+              envFrom:
+                - secretRef:
+                    name: iptv-env
+              securityContext:
+                capabilities:
+                  add: ["NET_RAW", "NET_ADMIN"]
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "50m"
+                limits:
+                  memory: "256Mi"
+                  cpu: "500m"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: iptv-notify
+  namespace: homelab
+spec:
+  schedule: "15,45 7-23 * * *"
+  timeZone: "America/Los_Angeles"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: notify
+              image: iptv-traceroute-analyzer:latest
+              imagePullPolicy: Never
+              args: ["notify.py"]
+              envFrom:
+                - secretRef:
+                    name: iptv-env
+              env:
+                - name: REDIS_HOST
+                  value: "redis"
+                - name: REDIS_PORT
+                  value: "6379"
+              securityContext:
+                capabilities:
+                  add: ["NET_RAW", "NET_ADMIN"]
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "50m"
+                limits:
+                  memory: "256Mi"
+                  cpu: "500m"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: iptv-auto-switch
+  namespace: homelab
+spec:
+  schedule: "0 * * * *"
+  timeZone: "America/Los_Angeles"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: auto-switch
+              image: iptv-traceroute-analyzer:latest
+              imagePullPolicy: Never
+              args: ["auto_switch.py"]
+              envFrom:
+                - secretRef:
+                    name: iptv-env
+              securityContext:
+                capabilities:
+                  add: ["NET_RAW", "NET_ADMIN"]
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "50m"
+                limits:
+                  memory: "256Mi"
+                  cpu: "500m"
