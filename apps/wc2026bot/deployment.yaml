@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wc2026bot
+  namespace: homelab
+  labels:
+    app: wc2026bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wc2026bot
+  template:
+    metadata:
+      labels:
+        app: wc2026bot
+    spec:
+      containers:
+        - name: wc2026bot
+          image: wc2026-telegram-bot-wc2026bot:latest
+          imagePullPolicy: Never
+          envFrom:
+            - secretRef:
+                name: wc2026-env
+          env:
+            - name: REDIS_HOST
+              value: "redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
