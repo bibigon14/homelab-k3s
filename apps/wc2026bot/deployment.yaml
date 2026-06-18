@@ -15,6 +15,13 @@ spec:
       labels:
         app: wc2026bot
     spec:
+      initContainers:
+        - name: init-access-log
+          image: busybox:1.36
+          command: ["sh", "-c", "touch /data/access.log"]
+          volumeMounts:
+            - name: access-log
+              mountPath: /data
       containers:
         - name: wc2026bot
           image: wc2026-telegram-bot-wc2026bot:latest
@@ -36,3 +43,24 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "300m"
+          volumeMounts:
+            - name: access-log
+              mountPath: /app/access.log
+              subPath: access.log
+      volumes:
+        - name: access-log
+          persistentVolumeClaim:
+            claimName: wc2026bot-log-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wc2026bot-log-pvc
+  namespace: homelab
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 64Mi
+  storageClassName: local-path
