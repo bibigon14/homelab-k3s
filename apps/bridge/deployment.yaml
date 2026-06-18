@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager-telegram-bridge
+  namespace: homelab
+  labels:
+    app: alertmanager-telegram-bridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager-telegram-bridge
+  template:
+    metadata:
+      labels:
+        app: alertmanager-telegram-bridge
+    spec:
+      containers:
+        - name: bridge
+          image: alertmanager-telegram-bridge:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 9119
+          env:
+            - name: BRIDGE_CONFIG
+              value: /config/config.yaml
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9119
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 9119
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: config
+          secret:
+            secretName: bridge-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager-telegram-bridge
+  namespace: homelab
+spec:
+  selector:
+    app: alertmanager-telegram-bridge
+  ports:
+    - port: 9119
+      targetPort: 9119
+      nodePort: 30119
+  type: NodePort
