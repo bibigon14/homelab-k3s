@@ -5,8 +5,8 @@ metadata:
   namespace: default
 spec:
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 8581
+      targetPort: 8581
 ---
 apiVersion: v1
 kind: Endpoints
@@ -17,7 +17,7 @@ subsets:
   - addresses:
       - ip: 192.168.50.212
     ports:
-      - port: 8080
+      - port: 8581
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -32,6 +32,6 @@ spec:
       kind: Rule
       services:
         - name: homebridge-external
-          port: 8080
+          port: 8581
   tls:
     secretName: homelab-tls
