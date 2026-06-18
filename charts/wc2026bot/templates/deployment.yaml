@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wc2026bot.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wc2026bot.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "wc2026bot.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "wc2026bot.selectorLabels" . | nindent 8 }}
+    spec:
+      initContainers:
+        - name: init-access-log
+          image: busybox:1.36
+          command: ["sh", "-c", "touch /data/access.log"]
+          volumeMounts:
+            - name: access-log
+              mountPath: /data
+      containers:
+        - name: wc2026bot
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: {{ include "wc2026bot.fullname" . }}-env
+          env:
+            - name: REDIS_HOST
+              value: "{{ .Values.redis.host }}"
+            - name: REDIS_PORT
+              value: "{{ .Values.redis.port }}"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: access-log
+              mountPath: /app/access.log
+              subPath: access.log
+      volumes:
+        - name: access-log
+          persistentVolumeClaim:
+            claimName: {{ include "wc2026bot.fullname" . }}-log
