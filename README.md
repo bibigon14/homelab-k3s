@@ -4,7 +4,7 @@ Kubernetes manifests and Helm charts for my Raspberry Pi 5 homelab — a single-
 
 ## Why
 
-Started on Docker Compose and systemd (see [wc2026-telegram-bot](https://github.com/bibigon14/wc2026-telegram-bot), [alertmanager-telegram-bridge](https://github.com/bibigon14/alertmanager-telegram-bridge), [iptv-traceroute-analyzer](https://github.com/bibigon14/iptv-traceroute-analyzer)), then migrated everything to k3s and progressively added Helm packaging and GitOps-style delivery via ArgoCD.
+Started on Docker Compose and systemd (see [wc2026-telegram-bot](https://github.com/bibigon14/wc2026-telegram-bot), [alertmanager-telegram-bridge](https://github.com/bibigon14/alertmanager-telegram-bridge), [iptv-traceroute-analyzer](https://github.com/bibigon14/iptv-traceroute-analyzer)), then migrated everything to k3s and progressively added Helm packaging, GitOps-style delivery via ArgoCD, and Traefik-based ingress with local TLS for all homelab services.
 
 This repo holds infrastructure manifests and Helm charts separately from application code — closer to how most teams split app repos from infra/GitOps repos in practice.
 
@@ -12,7 +12,7 @@ This repo holds infrastructure manifests and Helm charts separately from applica
 
 - Single-node k3s on a Raspberry Pi 5 8GB
 - `local-path` is the default StorageClass (k3s built-in)
-- Traefik ingress controller (k3s default) — not yet used
+- Traefik ingress controller (k3s default) — used for all `*.homelab.local` services
 
 ## Structure
 
@@ -29,6 +29,16 @@ argocd/
   redis-app.yaml                      # ArgoCD Application for redis
   wc2026bot-app.yaml                  # ArgoCD Application for wc2026bot
   iptv-app.yaml                       # ArgoCD Application for iptv
+ingress/
+  argocd-ingress.yaml                 # IngressRoute: argocd.homelab.local
+  grafana-ingress.yaml                # IngressRoute: grafana.homelab.local
+  uptime-kuma-ingress.yaml            # IngressRoute: uptime.homelab.local
+  homebridge-ingress.yaml             # IngressRoute: homebridge.homelab.local
+  influxdb-ingress.yaml               # IngressRoute: influxdb.homelab.local
+  pihole-ingress.yaml                 # IngressRoute: pihole.homelab.local
+certs/
+  ca.crt                              # Homelab CA certificate (add to Keychain for trusted TLS)
+  homelab.local.crt                   # Wildcard cert for *.homelab.local
 ```
 
 ## Apps
@@ -129,7 +139,7 @@ env:
 
 ArgoCD watches this repo and automatically syncs all 4 apps on every push to `main`.
 
-**UI:** `https://192.168.50.212:30808` — login `admin`
+**UI:** `https://argocd.homelab.local`
 
 ### Apply ArgoCD Applications
 
@@ -155,6 +165,66 @@ kubectl patch svc argocd-server -n argocd \
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath="{.data.password}" | base64 -d && echo
+```
+
+## Traefik Ingress
+
+All homelab services are exposed via Traefik with a wildcard TLS certificate for `*.homelab.local`. DNS is handled by Pi-hole.
+
+### Services
+
+| URL | Service | Port |
+|-----|---------|------|
+| `https://argocd.homelab.local` | ArgoCD | 80 (internal) |
+| `https://grafana.homelab.local` | Grafana | 3000 |
+| `https://uptime.homelab.local` | Uptime Kuma | 3001 |
+| `https://homebridge.homelab.local` | Homebridge | 8581 |
+| `https://influxdb.homelab.local` | InfluxDB | 8086 |
+| `https://pihole.homelab.local` | Pi-hole | 8090 |
+
+> Note: Pi-hole web interface was moved from port 80 to 8090 to avoid conflict with Traefik.
+
+### TLS setup
+
+A local CA (`certs/ca.crt`) signs a wildcard certificate for `*.homelab.local`. To trust it on macOS:
+
+1. Download `certs/ca.crt` from this repo
+2. Double-click → Keychain Access → add to **System** keychain
+3. Find **Homelab CA** → Get Info → Trust → **Always Trust**
+
+### DNS setup (Pi-hole)
+
+```bash
+sudo pihole-FTL --config dns.hosts '[
+  "192.168.50.1 router.asus.com",
+  "192.168.50.212 argocd.homelab.local",
+  "192.168.50.212 grafana.homelab.local",
+  "192.168.50.212 uptime.homelab.local",
+  "192.168.50.212 homebridge.homelab.local",
+  "192.168.50.212 influxdb.homelab.local",
+  "192.168.50.212 pihole.homelab.local"
+]'
+sudo systemctl restart pihole-FTL
+```
+
+### Regenerate certificates (valid 10 years)
+
+```bash
+cd certs/
+openssl genrsa -out ca.key 4096
+openssl req -x509 -new -nodes -key ca.key -sha256 -days 3650 \
+  -out ca.crt -subj "/C=US/ST=California/L=Roseville/O=Homelab/CN=Homelab CA"
+openssl genrsa -out homelab.local.key 2048
+openssl req -new -key homelab.local.key -out homelab.local.csr \
+  -subj "/CN=*.homelab.local" \
+  -addext "subjectAltName=DNS:*.homelab.local,DNS:homelab.local"
+openssl x509 -req -in homelab.local.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
+  -out homelab.local.crt -days 3650 -sha256 \
+  -extfile <(echo "subjectAltName=DNS:*.homelab.local,DNS:homelab.local")
+kubectl create secret tls homelab-tls --cert=homelab.local.crt --key=homelab.local.key \
+  -n argocd --dry-run=client -o yaml | kubectl apply -f -
+kubectl create secret tls homelab-tls --cert=homelab.local.crt --key=homelab.local.key \
+  -n default --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 ## Update workflow
@@ -186,6 +256,8 @@ kubectl get pods -n homelab
 kubectl get cronjobs -n homelab
 helm list -n homelab
 argocd app list
+kubectl get ingressroute -n default
+kubectl get ingressroute -n argocd
 ```
 
 ## License
