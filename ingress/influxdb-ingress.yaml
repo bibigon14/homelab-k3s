@@ -1,37 +1,37 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: uptime-kuma-external
+  name: influxdb-external
   namespace: default
 spec:
   ports:
-    - port: 3001
-      targetPort: 3001
+    - port: 8086
+      targetPort: 8086
 ---
 apiVersion: v1
 kind: Endpoints
 metadata:
-  name: uptime-kuma-external
+  name: influxdb-external
   namespace: default
 subsets:
   - addresses:
       - ip: 192.168.50.212
     ports:
-      - port: 3001
+      - port: 8086
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: uptime-kuma
+  name: influxdb
   namespace: default
 spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`uptime.homelab.local`)
+    - match: Host(`influxdb.homelab.local`)
       kind: Rule
       services:
-        - name: uptime-kuma-external
-          port: 3001
+        - name: influxdb-external
+          port: 8086
   tls:
     secretName: homelab-tls
