@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cadvisor-external
+  namespace: default
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: cadvisor-external
+  namespace: default
+subsets:
+  - addresses:
+      - ip: 192.168.50.212
+    ports:
+      - port: 8080
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: cadvisor
+  namespace: default
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`cadvisor.homelab.local`)
+      kind: Rule
+      services:
+        - name: cadvisor-external
+          port: 8080
+  tls:
+    secretName: homelab-tls

@@ -36,6 +36,7 @@ ingress/
   homebridge-ingress.yaml             # IngressRoute: homebridge.homelab.local
   influxdb-ingress.yaml               # IngressRoute: influxdb.homelab.local
   pihole-ingress.yaml                 # IngressRoute: pihole.homelab.local
+  cadvisor-ingress.yaml               # IngressRoute: cadvisor.homelab.local
 certs/
   ca.crt                              # Homelab CA certificate (add to Keychain for trusted TLS)
   homelab.local.crt                   # Wildcard cert for *.homelab.local
@@ -181,6 +182,7 @@ All homelab services are exposed via Traefik with a wildcard TLS certificate for
 | `https://homebridge.homelab.local` | Homebridge | 8581 |
 | `https://influxdb.homelab.local` | InfluxDB | 8086 |
 | `https://pihole.homelab.local` | Pi-hole | 8090 |
+| `https://cadvisor.homelab.local` | cAdvisor | 8080 |
 
 > Note: Pi-hole web interface was moved from port 80 to 8090 to avoid conflict with Traefik.
 
@@ -202,7 +204,8 @@ sudo pihole-FTL --config dns.hosts '[
   "192.168.50.212 uptime.homelab.local",
   "192.168.50.212 homebridge.homelab.local",
   "192.168.50.212 influxdb.homelab.local",
-  "192.168.50.212 pihole.homelab.local"
+  "192.168.50.212 pihole.homelab.local",
+  "192.168.50.212 cadvisor.homelab.local"
 ]'
 sudo systemctl restart pihole-FTL
 ```
