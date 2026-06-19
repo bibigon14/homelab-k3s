@@ -24,11 +24,13 @@ charts/
   redis/                              # Helm chart: Deployment + PVC + ClusterIP Service
   wc2026bot/                          # Helm chart: Deployment + PVC + Secret + initContainer
   iptv-traceroute-analyzer/           # Helm chart: 3 CronJobs + Secret
+  kube-state-metrics/                 # Helm chart: ClusterRole/ClusterRoleBinding + Deployment + Service
 argocd/
   bridge-app.yaml                     # ArgoCD Application for bridge
   redis-app.yaml                      # ArgoCD Application for redis
   wc2026bot-app.yaml                  # ArgoCD Application for wc2026bot
   iptv-app.yaml                       # ArgoCD Application for iptv
+  kube-state-metrics-app.yaml         # ArgoCD Application for kube-state-metrics
 ingress/
   argocd-ingress.yaml                 # IngressRoute: argocd.homelab.local
   grafana-ingress.yaml                # IngressRoute: grafana.homelab.local
@@ -70,6 +72,10 @@ Images are built locally and imported via `k3s ctr images import` — no registr
 
 > InfluxDB and Alertmanager run on the host via systemd. CronJobs reach them via `192.168.50.212`.
 
+### kube-state-metrics
+
+[Kubernetes object-state exporter](https://github.com/kubernetes/kube-state-metrics) — exposes Prometheus metrics for Pod/Deployment/Job/CronJob/PVC status that no resource-usage-based exporter (like cAdvisor) can see. Backed by a ClusterRole with read-only `list`/`watch` access to most cluster object types. Paired with [homelab-observability's k3s-alerts.yml](https://github.com/bibigon14/homelab-observability) for alerting — see that repo for the full rationale and alert rules.
+
 ## Helm
 
 Each app is packaged as a Helm chart under `charts/`. Sensitive values (tokens, API keys) live in `values.secret.yaml` which is excluded from the repo via `.gitignore`.
@@ -81,6 +87,9 @@ cd charts/<chart-name>
 helm install <release-name> . -f values.secret.yaml -n homelab
 helm upgrade <release-name> . -f values.secret.yaml -n homelab
 ```
+
+> `kube-state-metrics` has no secrets, so it's installed without `-f values.secret.yaml`:
+> `helm install kube-state-metrics . -n homelab`
 
 ### Check releases
 
@@ -136,9 +145,11 @@ env:
   TELEGRAM_CHAT_ID: "<chat-id>"
 ```
 
+> After editing any `values.secret.yaml`, run `helm upgrade` immediately — the file is gitignored, so there's no diff/PR trail to catch a stale deploy. A `values.secret.yaml` edit that isn't followed by an upgrade is invisible drift: `helm get values` will show the new file, but the live Secret in the cluster keeps the old one until the next upgrade.
+
 ## ArgoCD
 
-ArgoCD watches this repo and automatically syncs all 4 apps on every push to `main`.
+ArgoCD watches this repo and automatically syncs all 5 apps on every push to `main`.
 
 **UI:** `https://argocd.homelab.local`
 
@@ -159,6 +170,15 @@ argocd app list
 ```bash
 kubectl patch svc argocd-server -n argocd \
   -p '{"spec": {"type": "NodePort", "ports": [{"port": 443, "targetPort": 8080, "nodePort": 30808, "name": "https"}]}}'
+```
+
+### Expose ArgoCD metrics for Prometheus (optional, one-time setup)
+
+Only needed if running Prometheus on the host (outside the cluster), to scrape ArgoCD sync/health status — see [homelab-observability's argocd-alerts.yml](https://github.com/bibigon14/homelab-observability):
+
+```bash
+kubectl patch svc argocd-metrics -n argocd \
+  -p '{"spec": {"type": "NodePort", "ports": [{"port": 8082, "targetPort": 8082, "nodePort": 30810, "name": "metrics"}]}}'
 ```
 
 ### Get admin password
@@ -185,6 +205,17 @@ All homelab services are exposed via Traefik with a wildcard TLS certificate for
 | `https://cadvisor.homelab.local` | cAdvisor | 8080 |
 
 > Note: Pi-hole web interface was moved from port 80 to 8090 to avoid conflict with Traefik.
+
+### NodePort services (not behind Traefik)
+
+Some services are reached directly via NodePort rather than through Traefik/TLS — mostly internal scrape targets for the host-based Prometheus, or webhooks from host-based daemons:
+
+| Port | Service | Purpose |
+|------|---------|---------|
+| `30119` | bridge (alertmanager-telegram-bridge) | Alertmanager webhook target |
+| `30808` | argocd-server | HTTPS UI/API, alternative to the Traefik route |
+| `30809` | kube-state-metrics | Prometheus scrape target |
+| `30810` | argocd-metrics | Prometheus scrape target |
 
 ### TLS setup
 
