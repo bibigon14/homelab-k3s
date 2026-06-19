@@ -59,9 +59,9 @@ spec:
                 - secretRef:
                     name: {{ include "iptv.fullname" . }}-env
               env:
-                - name: REDIS_HOST
+                - name: IPTV_REDIS_HOST
                   value: "{{ .Values.redis.host }}"
-                - name: REDIS_PORT
+                - name: IPTV_REDIS_PORT
                   value: "{{ .Values.redis.port }}"
               securityContext:
                 capabilities:
