@@ -1,0 +1,5 @@
+apiVersion: v2
+name: kube-state-metrics
+description: Lightweight kube-state-metrics deployment for Prometheus k8s-object-level alerting (Pods, PVCs, CronJobs, Deployments)
+version: 0.1.0
+appVersion: "2.13.0"
