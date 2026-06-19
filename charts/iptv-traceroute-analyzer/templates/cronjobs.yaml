@@ -58,11 +58,6 @@ spec:
               envFrom:
                 - secretRef:
                     name: {{ include "iptv.fullname" . }}-env
-              env:
-                - name: IPTV_REDIS_HOST
-                  value: "{{ .Values.redis.host }}"
-                - name: IPTV_REDIS_PORT
-                  value: "{{ .Values.redis.port }}"
               securityContext:
                 capabilities:
                   add: ["NET_RAW", "NET_ADMIN"]
