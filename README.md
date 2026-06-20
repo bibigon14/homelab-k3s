@@ -29,7 +29,7 @@ argocd/
   bridge-app.yaml                     # ArgoCD Application for bridge
   redis-app.yaml                      # ArgoCD Application for redis
   wc2026bot-app.yaml                  # ArgoCD Application for wc2026bot
-  iptv-app.yaml                       # ArgoCD Application for iptv
+  iptv-app.yaml                       # ArgoCD Application for iptv (auto-sync disabled, see below)
   kube-state-metrics-app.yaml         # ArgoCD Application for kube-state-metrics
 ingress/
   argocd-ingress.yaml                 # IngressRoute: argocd.homelab.local
@@ -48,11 +48,18 @@ certs/
 
 ### redis
 
-Shared cache and state store used by `wc2026bot` and `iptv-notify` (alert dedup). Persists to a 1Gi PVC. Exposed as `redis:6379` within the `homelab` namespace.
+Shared cache and state store used by `wc2026bot` and `iptv-notify`/`iptv-auto-switch` (alert dedup, current-server state). Persists to a 1Gi PVC. Exposed as `redis:6379` within the `homelab` namespace.
 
 ### wc2026bot
 
 [World Cup 2026 Telegram bot](https://github.com/bibigon14/wc2026-telegram-bot) — Redis-cached API calls, per-user rate limiting. `access.log` persisted to a 64Mi PVC via `subPath` mount (initContainer ensures the file exists before the main container starts).
+
+> If `local-path`'s PVC is ever recreated (helm uninstall/install, PV reclaim), the backing directory under `/var/lib/rancher/k3s/storage/` gets a new name (it's keyed by PV UID), silently breaking any symlink pointing at the old path. See `relink-logs.sh` in the [wc2026-telegram-bot](https://github.com/bibigon14/wc2026-telegram-bot) repo for a script that re-detects the current path via `kubectl` and fixes the symlink. Also worth granting your user read access once instead of `sudo cat`-ing every time:
+> ```bash
+> sudo apt install -y acl
+> sudo setfacl -R -m u:<your-user>:rX /var/lib/rancher/k3s/storage/
+> sudo setfacl -d -m u:<your-user>:rX /var/lib/rancher/k3s/storage/
+> ```
 
 ### bridge (alertmanager-telegram-bridge)
 
@@ -64,9 +71,9 @@ Shared cache and state store used by `wc2026bot` and `iptv-notify` (alert dedup)
 
 - `iptv-influx-writer` — every 30 min, `mtr`-based checks against 8 servers, writes to InfluxDB
 - `iptv-notify` — at :15 and :45, 7am–11pm Pacific, Telegram alerts on degradation (dedup via Redis)
-- `iptv-auto-switch` — hourly, switches active IPTV server based on hysteresis logic
+- `iptv-auto-switch` — hourly, switches active IPTV server based on hysteresis logic, persists current server choice to Redis (`iptv:current_server`)
 
-All three require `NET_RAW`/`NET_ADMIN` for `mtr` and explicit `timeZone: "America/Los_Angeles"` (k8s CronJob defaults to UTC).
+All three require `NET_RAW`/`NET_ADMIN` for `mtr` and explicit `timeZone: "America/Los_Angeles"` (k8s CronJob defaults to UTC). All three get their full env from the `iptv-env` Secret via `envFrom` — no per-CronJob `env:` overrides; keep it that way (see the ArgoCD section below for why a stray per-CronJob `env:` block caused hours of debugging here).
 
 Images are built locally and imported via `k3s ctr images import` — no registry needed on a single-node cluster.
 
@@ -143,13 +150,17 @@ env:
   INFLUX_BUCKET: "iptv_metrics"
   TELEGRAM_TOKEN: "<token>"
   TELEGRAM_CHAT_ID: "<chat-id>"
+  IPTV_REDIS_HOST: "redis"
+  IPTV_REDIS_PORT: "6379"
 ```
 
 > After editing any `values.secret.yaml`, run `helm upgrade` immediately — the file is gitignored, so there's no diff/PR trail to catch a stale deploy. A `values.secret.yaml` edit that isn't followed by an upgrade is invisible drift: `helm get values` will show the new file, but the live Secret in the cluster keeps the old one until the next upgrade.
 
+> Also keep all per-app env vars inside the **Secret** (i.e. under `values.secret.yaml`'s `env:` map), not as one-off `env:` entries hand-added to a specific CronJob/Deployment template. A stray `env:` block added to only one of several CronJob templates is easy to miss when something has 3+ near-identical jobTemplates — it silently works for that one job and silently doesn't exist for the others, with no error, just wrong behavior. Keeping `envFrom: secretRef` as the *only* source of env vars means there's exactly one place to look.
+
 ## ArgoCD
 
-ArgoCD watches this repo and automatically syncs all 5 apps on every push to `main`.
+ArgoCD watches this repo and syncs apps on every push to `main` — but **not automatically for every app**, see below.
 
 **UI:** `https://argocd.homelab.local`
 
@@ -164,6 +175,19 @@ kubectl apply -f argocd/
 ```bash
 argocd app list
 ```
+
+### selfHeal vs values.secret.yaml — a real incident
+
+`syncPolicy.automated.selfHeal: true` makes ArgoCD continuously reconcile live cluster state back to whatever's in git. Since `values.secret.yaml` is gitignored, ArgoCD's own Helm render of a chart has **no secret values at all** — every key in the Secret renders empty. With `selfHeal: true`, ArgoCD will periodically re-apply that empty-valued Secret over whatever a manual `helm upgrade -f values.secret.yaml` just deployed, and the live Secret silently reverts.
+
+This actually happened to `iptv`: a `TELEGRAM_TOKEN` and `IPTV_REDIS_HOST`/`PORT` fix kept appearing to "not take" across multiple `helm upgrade` runs, because ArgoCD's selfHeal sync was racing the manual upgrade and winning a few minutes later. An `ignoreDifferences` rule on the Secret's `/data` path was already in place but didn't prevent this reliably.
+
+**Fix applied:** `argocd/iptv-app.yaml` now has `syncPolicy: {}` — no `automated` block, so ArgoCD only syncs `iptv` on an explicit `argocd app sync iptv` / UI sync click. Manifests (CronJobs, etc.) still need a manual sync after a git push; the Secret is managed entirely outside ArgoCD via `helm upgrade -f values.secret.yaml`.
+
+If you hit something similar on another app here, the general options are:
+1. Disable `automated` sync for that Application (what we did) — simplest, but you lose auto-deploy-on-push for everything in that app, not just the Secret.
+2. Keep the Secret out of the Helm chart entirely — create/manage it with a separate `kubectl create secret` (or a tool like `sealed-secrets`/`external-secrets`) that ArgoCD's `Application` doesn't own or track at all.
+3. Trust `ignoreDifferences` on `/data` — works in many setups, but as seen above isn't airtight against every sync trigger.
 
 ### Expose ArgoCD server (one-time setup)
 
@@ -280,7 +304,9 @@ To update chart configuration (non-secret values):
 git add charts/<chart>/values.yaml
 git commit -m "chore: update <chart> values"
 git push
-# ArgoCD syncs automatically within ~3 minutes
+# ArgoCD syncs automatically within ~3 minutes for apps with automated
+# sync enabled. For iptv (automated sync disabled, see ArgoCD section),
+# sync manually: argocd app sync iptv
 ```
 
 ## Status
