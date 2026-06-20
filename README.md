@@ -25,12 +25,16 @@ charts/
   wc2026bot/                          # Helm chart: Deployment + PVC + Secret + initContainer
   iptv-traceroute-analyzer/           # Helm chart: 3 CronJobs + Secret
   kube-state-metrics/                 # Helm chart: ClusterRole/ClusterRoleBinding + Deployment + Service
+  loki/                               # Helm chart: single-binary Loki, Deployment + PVC + Service
+  alloy/                              # Helm chart: Grafana Alloy DaemonSet + RBAC (log shipper)
 argocd/
   bridge-app.yaml                     # ArgoCD Application for bridge
   redis-app.yaml                      # ArgoCD Application for redis
   wc2026bot-app.yaml                  # ArgoCD Application for wc2026bot
   iptv-app.yaml                       # ArgoCD Application for iptv (auto-sync disabled, see below)
   kube-state-metrics-app.yaml         # ArgoCD Application for kube-state-metrics
+  loki-app.yaml                       # ArgoCD Application for loki
+  alloy-app.yaml                      # ArgoCD Application for alloy
 ingress/
   argocd-ingress.yaml                 # IngressRoute: argocd.homelab.local
   grafana-ingress.yaml                # IngressRoute: grafana.homelab.local
@@ -83,6 +87,16 @@ Images are built locally and imported via `k3s ctr images import` — no registr
 
 [Kubernetes object-state exporter](https://github.com/kubernetes/kube-state-metrics) — exposes Prometheus metrics for Pod/Deployment/Job/CronJob/PVC status that no resource-usage-based exporter (like cAdvisor) can see. Backed by a ClusterRole with read-only `list`/`watch` access to most cluster object types. Paired with [homelab-observability's k3s-alerts.yml](https://github.com/bibigon14/homelab-observability) for alerting — see that repo for the full rationale and alert rules.
 
+### loki + alloy
+
+Centralized log aggregation: [Loki](https://grafana.com/oss/loki/) (single-binary mode, 10Gi PVC, 7-day retention, filesystem storage backend) paired with [Grafana Alloy](https://grafana.com/docs/alloy/) as the log shipper, deployed as a DaemonSet.
+
+Alloy discovers pods via the Kubernetes API (`discovery.kubernetes`), filters to the `homelab` namespace, and builds the on-disk log path matching k3s/containerd's layout (`/var/log/pods/<namespace>_<pod>_<uid>/*/*.log`) via a hostPath mount — this requires `runAsUser: 0` since `/var/log/pods` is root-owned. Logs are parsed with `stage.cri {}` to extract the actual message from containerd's structured JSON wrapper before shipping to Loki.
+
+Exposed via `NodePort 30811` (same reasoning as kube-state-metrics/argocd-metrics — Grafana runs on the host, outside the cluster, with no DNS resolution for in-cluster Service names like `loki`). Add it as a Grafana data source pointing at `http://localhost:30811`, type Loki.
+
+On first deploy this immediately surfaced two real issues that had been invisible without searchable logs: a Telegram `getUpdates` `409 Conflict` (two long-pollers fighting over one bot token) and a `kube-state-metrics` RBAC gap on `mutatingwebhookconfigurations` at cluster scope.
+
 ## Helm
 
 Each app is packaged as a Helm chart under `charts/`. Sensitive values (tokens, API keys) live in `values.secret.yaml` which is excluded from the repo via `.gitignore`.
@@ -95,7 +109,7 @@ helm install <release-name> . -f values.secret.yaml -n homelab
 helm upgrade <release-name> . -f values.secret.yaml -n homelab
 ```
 
-> `kube-state-metrics` has no secrets, so it's installed without `-f values.secret.yaml`:
+> `kube-state-metrics`, `loki`, and `alloy` have no secrets, so they're installed without `-f values.secret.yaml`:
 > `helm install kube-state-metrics . -n homelab`
 
 ### Check releases
@@ -184,8 +198,10 @@ This actually happened to `iptv`: a `TELEGRAM_TOKEN` and `IPTV_REDIS_HOST`/`PORT
 
 **Fix applied:** `argocd/iptv-app.yaml` now has `syncPolicy: {}` — no `automated` block, so ArgoCD only syncs `iptv` on an explicit `argocd app sync iptv` / UI sync click. Manifests (CronJobs, etc.) still need a manual sync after a git push; the Secret is managed entirely outside ArgoCD via `helm upgrade -f values.secret.yaml`.
 
+Apps with no secrets at all (`kube-state-metrics`, `loki`, `alloy`) keep `automated.selfHeal: true` — there's no gitignored values file for ArgoCD's render to diverge from, so auto-sync is safe there.
+
 If you hit something similar on another app here, the general options are:
-1. Disable `automated` sync for that Application (what we did) — simplest, but you lose auto-deploy-on-push for everything in that app, not just the Secret.
+1. Disable `automated` sync for that Application (what we did for `iptv`) — simplest, but you lose auto-deploy-on-push for everything in that app, not just the Secret.
 2. Keep the Secret out of the Helm chart entirely — create/manage it with a separate `kubectl create secret` (or a tool like `sealed-secrets`/`external-secrets`) that ArgoCD's `Application` doesn't own or track at all.
 3. Trust `ignoreDifferences` on `/data` — works in many setups, but as seen above isn't airtight against every sync trigger.
 
@@ -232,7 +248,7 @@ All homelab services are exposed via Traefik with a wildcard TLS certificate for
 
 ### NodePort services (not behind Traefik)
 
-Some services are reached directly via NodePort rather than through Traefik/TLS — mostly internal scrape targets for the host-based Prometheus, or webhooks from host-based daemons:
+Some services are reached directly via NodePort rather than through Traefik/TLS — mostly internal scrape/query targets for host-based Prometheus and Grafana, or webhooks from host-based daemons. Both run outside the cluster, so they can't resolve in-cluster Service DNS names:
 
 | Port | Service | Purpose |
 |------|---------|---------|
@@ -240,6 +256,7 @@ Some services are reached directly via NodePort rather than through Traefik/TLS 
 | `30808` | argocd-server | HTTPS UI/API, alternative to the Traefik route |
 | `30809` | kube-state-metrics | Prometheus scrape target |
 | `30810` | argocd-metrics | Prometheus scrape target |
+| `30811` | loki | Grafana data source query target |
 
 ### TLS setup
 
@@ -308,6 +325,8 @@ git push
 # sync enabled. For iptv (automated sync disabled, see ArgoCD section),
 # sync manually: argocd app sync iptv
 ```
+
+> Note: editing a ConfigMap (e.g. `alloy/templates/configmap.yaml`) via `helm upgrade` does **not** restart pods that mount it — kubelet eventually syncs the file in-place, but a running process (like Alloy) won't reload it without a restart. After a ConfigMap-only change: `kubectl rollout restart daemonset/<name> -n homelab` (or `deployment/<name>`).
 
 ## Status
 
