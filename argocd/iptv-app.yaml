@@ -12,10 +12,7 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: homelab
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
+  syncPolicy: {}
   ignoreDifferences:
     - group: ""
       kind: Secret
