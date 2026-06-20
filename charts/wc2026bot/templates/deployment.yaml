@@ -36,6 +36,12 @@ spec:
               value: "{{ .Values.redis.port }}"
             - name: PYTHONUNBUFFERED
               value: "1"
+            - name: METRICS_PORT
+              value: "9120"
+          ports:
+            - name: metrics
+              containerPort: 9120
+              protocol: TCP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
