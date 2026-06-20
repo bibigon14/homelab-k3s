@@ -1,0 +1,367 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "telegram-bots",
+    "title": "Telegram Bots",
+    "description": "RED metrics for alertmanager-telegram-bridge and wc2026bot",
+    "tags": ["telegram", "bots", "homelab"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": { "from": "now-6h", "to": "now" },
+    "templating": {
+      "list": []
+    },
+    "panels": [
+      {
+        "type": "row",
+        "title": "🔔 Alertmanager Telegram Bridge",
+        "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+        "collapsed": false
+      },
+      {
+        "type": "timeseries",
+        "title": "Alerts Received Rate",
+        "description": "Incoming alert rate from Alertmanager webhooks, broken down by severity and status (firing/resolved).",
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": { "fillOpacity": 15, "lineWidth": 2 }
+          },
+          "overrides": [
+            { "matcher": { "id": "byRegexp", "options": ".*critical.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": ".*warning.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] }
+          ]
+        },
+        "targets": [
+          {
+            "expr": "rate(bridge_alerts_received_total{job=\"bridge\"}[5m])",
+            "legendFormat": "{{severity}} / {{status}}"
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "title": "Delivered vs Suppressed",
+        "description": "Alerts successfully delivered to Telegram vs suppressed (quiet hours, throttle, mute).",
+        "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": { "fillOpacity": 20, "lineWidth": 2, "stacking": { "mode": "normal" } }
+          },
+          "overrides": [
+            { "matcher": { "id": "byRegexp", "options": "sent.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": "suppressed.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+          ]
+        },
+        "targets": [
+          {
+            "expr": "rate(bridge_telegram_sent_total{job=\"bridge\"}[5m])",
+            "legendFormat": "sent ({{severity}}/{{status}})"
+          },
+          {
+            "expr": "rate(bridge_alerts_suppressed_total{job=\"bridge\"}[5m])",
+            "legendFormat": "suppressed ({{reason}}/{{severity}})"
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "title": "sendMessage Latency",
+        "description": "Telegram sendMessage latency percentiles (p50, p95, p99).",
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "custom": { "fillOpacity": 10, "lineWidth": 2 }
+          },
+          "overrides": [
+            { "matcher": { "id": "byName", "options": "p50" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+            { "matcher": { "id": "byName", "options": "p95" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+            { "matcher": { "id": "byName", "options": "p99" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+          ]
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(bridge_telegram_send_duration_seconds_bucket{job=\"bridge\"}[5m]))",
+            "legendFormat": "p50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(bridge_telegram_send_duration_seconds_bucket{job=\"bridge\"}[5m]))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(bridge_telegram_send_duration_seconds_bucket{job=\"bridge\"}[5m]))",
+            "legendFormat": "p99"
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "title": "Telegram API Errors",
+        "description": "Errors from Telegram API calls, by method and error type.",
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 9 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": { "fillOpacity": 15, "lineWidth": 2 }
+          },
+          "overrides": [
+            { "matcher": { "id": "byRegexp", "options": ".*http_4xx.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": ".*http_5xx.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": ".*timeout.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": ".*network.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } }] }
+          ]
+        },
+        "targets": [
+          {
+            "expr": "rate(bridge_telegram_errors_total{job=\"bridge\"}[5m])",
+            "legendFormat": "{{method}} / {{error_type}}"
+          }
+        ]
+      },
+      {
+        "type": "stat",
+        "title": "Quiet Hours",
+        "description": "Current quiet hours status (1 = active, 0 = off).",
+        "gridPos": { "h": 4, "w": 4, "x": 8, "y": 9 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              { "type": "value", "options": { "0": { "text": "OFF", "color": "green" }, "1": { "text": "ACTIVE", "color": "orange" } } }
+            ],
+            "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }] }
+          }
+        },
+        "targets": [
+          { "expr": "bridge_quiet_hours_active{job=\"bridge\"}", "legendFormat": "quiet_hours" }
+        ],
+        "options": { "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" }
+      },
+      {
+        "type": "stat",
+        "title": "Manual Mute",
+        "description": "Manual mute status via /mute command.",
+        "gridPos": { "h": 4, "w": 4, "x": 12, "y": 9 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              { "type": "value", "options": { "0": { "text": "OFF", "color": "green" }, "1": { "text": "MUTED", "color": "red" } } }
+            ],
+            "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+          }
+        },
+        "targets": [
+          { "expr": "bridge_mute_active{job=\"bridge\"}", "legendFormat": "mute" }
+        ],
+        "options": { "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" }
+      },
+      {
+        "type": "stat",
+        "title": "Throttled Fingerprints",
+        "description": "Number of distinct alert fingerprints currently held in the throttle store.",
+        "gridPos": { "h": 4, "w": 4, "x": 8, "y": 13 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 5 }, { "color": "red", "value": 20 }] }
+          }
+        },
+        "targets": [
+          { "expr": "bridge_throttle_active_fingerprints{job=\"bridge\"}", "legendFormat": "fingerprints" }
+        ],
+        "options": { "colorMode": "background", "graphMode": "area", "textMode": "value" }
+      },
+      {
+        "type": "stat",
+        "title": "Build Info",
+        "description": "Current bridge version and Python version.",
+        "gridPos": { "h": 4, "w": 4, "x": 12, "y": 13 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": { "thresholds": { "steps": [{ "color": "blue", "value": null }] } }
+        },
+        "targets": [
+          { "expr": "bridge_build_info{job=\"bridge\"}", "legendFormat": "v{{version}} py{{python_version}}" }
+        ],
+        "options": { "colorMode": "background", "graphMode": "none", "textMode": "name" }
+      },
+      {
+        "type": "timeseries",
+        "title": "getUpdates Backoff Time",
+        "description": "Cumulative seconds spent backing off after getUpdates errors (409 Conflict).",
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 9 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "custom": { "fillOpacity": 15, "lineWidth": 2 }
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(bridge_getupdates_backoff_seconds_total{job=\"bridge\"}[5m]) * 300",
+            "legendFormat": "backoff seconds / 5m"
+          }
+        ]
+      },
+
+      {
+        "type": "row",
+        "title": "⚽ World Cup 2026 Bot",
+        "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+        "collapsed": false
+      },
+      {
+        "type": "timeseries",
+        "title": "External API Request Rate",
+        "description": "Outbound HTTP request rate, auto-classified by target API and outcome.",
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 18 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": { "fillOpacity": 15, "lineWidth": 2 }
+          },
+          "overrides": [
+            { "matcher": { "id": "byRegexp", "options": ".*success.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": ".*client_error.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": ".*server_error.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+          ]
+        },
+        "targets": [
+          {
+            "expr": "rate(wc2026_external_api_requests_total{job=\"wc2026bot\"}[5m])",
+            "legendFormat": "{{api}} / {{outcome}}"
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "title": "External API Latency",
+        "description": "P50 and P95 round-trip latency by target API (includes urllib3 retry time).",
+        "gridPos": { "h": 8, "w": 8, "x": 8, "y": 18 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "custom": { "fillOpacity": 10, "lineWidth": 2 }
+          }
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(wc2026_external_api_duration_seconds_bucket{job=\"wc2026bot\"}[5m]))",
+            "legendFormat": "p50 {{api}}"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(wc2026_external_api_duration_seconds_bucket{job=\"wc2026bot\"}[5m]))",
+            "legendFormat": "p95 {{api}}"
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "title": "Telegram Messages Sent",
+        "description": "Messages successfully delivered to Telegram, by type (schedule, result, reminder, live, command_response).",
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 18 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": { "fillOpacity": 20, "lineWidth": 2, "stacking": { "mode": "normal" } }
+          },
+          "overrides": [
+            { "matcher": { "id": "byRegexp", "options": "schedule" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": "result" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": "live" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": "reminder" }, "properties": [{ "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": "command_response" }, "properties": [{ "id": "color", "value": { "fixedColor": "semi-dark-orange", "mode": "fixed" } }] }
+          ]
+        },
+        "targets": [
+          {
+            "expr": "rate(wc2026_telegram_messages_sent_total{job=\"wc2026bot\"}[5m])",
+            "legendFormat": "{{type}}"
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "title": "Redis Cache Operations",
+        "description": "Redis cache get/set operations by outcome (hit, miss, error).",
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 26 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": { "fillOpacity": 15, "lineWidth": 2 }
+          },
+          "overrides": [
+            { "matcher": { "id": "byRegexp", "options": ".*hit.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": ".*miss.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": ".*error.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+          ]
+        },
+        "targets": [
+          {
+            "expr": "rate(wc2026_cache_operations_total{job=\"wc2026bot\"}[5m])",
+            "legendFormat": "{{op}} / {{outcome}}"
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "title": "Telegram Errors",
+        "description": "Telegram API errors observed by the wc2026 bot.",
+        "gridPos": { "h": 8, "w": 8, "x": 8, "y": 26 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": { "fillOpacity": 15, "lineWidth": 2 }
+          },
+          "overrides": [
+            { "matcher": { "id": "byRegexp", "options": ".*http_4xx.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": ".*http_5xx.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": ".*timeout.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+            { "matcher": { "id": "byRegexp", "options": ".*network.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } }] }
+          ]
+        },
+        "targets": [
+          {
+            "expr": "rate(wc2026_telegram_errors_total{job=\"wc2026bot\"}[5m])",
+            "legendFormat": "{{error_type}}"
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "title": "API Retries (urllib3)",
+        "description": "urllib3 retry attempts triggered by transient failures (TLS errors, 5xx, 429).",
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 26 },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": { "fillOpacity": 15, "lineWidth": 2 }
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(wc2026_external_api_retries_total{job=\"wc2026bot\"}[5m])",
+            "legendFormat": "{{api}}"
+          }
+        ]
+      }
+    ],
+    "schemaVersion": 39
+  },
+  "overwrite": true
+}
