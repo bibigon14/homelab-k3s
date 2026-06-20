@@ -198,6 +198,8 @@ This actually happened to `iptv`: a `TELEGRAM_TOKEN` and `IPTV_REDIS_HOST`/`PORT
 
 **Fix applied:** `argocd/iptv-app.yaml` now has `syncPolicy: {}` — no `automated` block, so ArgoCD only syncs `iptv` on an explicit `argocd app sync iptv` / UI sync click. Manifests (CronJobs, etc.) still need a manual sync after a git push; the Secret is managed entirely outside ArgoCD via `helm upgrade -f values.secret.yaml`.
 
+**One more wrinkle found later the same day:** even after applying `syncPolicy: {}`, the Secret went empty again hours later. `kubectl get application iptv -n argocd -o jsonpath='{.status.history}'` showed an `automated: true`-initiated sync timestamped right around when the `syncPolicy: {}` fix was applied — a sync that was already in flight (queued against the old, still-automated spec) landed *after* `kubectl apply` updated the spec, so it looked like the fix "didn't take" when really it was the last automated sync to sneak through during the transition. Re-running `helm upgrade -f values.secret.yaml` resolved it, and `.status.history` confirmed the next sync was `initiatedBy: {username: admin}` (manual), not automated. Lesson: after disabling `automated` sync on an app with a secret-drift problem, don't assume it's instantly safe — verify the Secret immediately after, and check `.status.history` if it looks like déjà vu.
+
 Apps with no secrets at all (`kube-state-metrics`, `loki`, `alloy`) keep `automated.selfHeal: true` — there's no gitignored values file for ArgoCD's render to diverge from, so auto-sync is safe there.
 
 If you hit something similar on another app here, the general options are:
