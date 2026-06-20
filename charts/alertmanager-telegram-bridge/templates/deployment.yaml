@@ -24,6 +24,8 @@ spec:
           env:
             - name: BRIDGE_CONFIG
               value: /config/config.yaml
+            - name: TZ
+              value: {{ .Values.timezone | default "UTC" | quote }}
           volumeMounts:
             - name: config
               mountPath: /config
