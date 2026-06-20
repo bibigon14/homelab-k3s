@@ -1,0 +1,23 @@
+namespace: homelab
+
+image:
+  repository: grafana/loki
+  tag: "3.3.0"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+service:
+  port: 3100
+
+storage:
+  size: 10Gi
+
+retention:
+  # How long to keep logs. Loki enforces this via compactor retention.
+  period: 168h  # 7 days

@@ -1,0 +1,15 @@
+namespace: homelab
+
+image:
+  repository: grafana/alloy
+  tag: "v1.5.0"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+lokiUrl: "http://loki:3100/loki/api/v1/push"

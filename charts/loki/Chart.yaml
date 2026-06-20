@@ -1,0 +1,5 @@
+apiVersion: v2
+name: loki
+description: Single-binary Loki for log aggregation, paired with Grafana Alloy for log collection
+version: 0.1.0
+appVersion: "3.3.0"

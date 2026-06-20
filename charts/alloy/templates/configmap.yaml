@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-config
+  namespace: {{ .Values.namespace }}
+data:
+  config.alloy: |
+    // Discover all pods on this node via the Kubernetes API
+    discovery.kubernetes "pods" {
+      role = "pod"
+    }
+
+    // Relabel discovered pods into something useful: namespace, pod, container
+    // labels, and build the on-disk log file path that matches k3s/containerd's
+    // /var/log/pods/<namespace>_<pod>_<uid>/<container>/N.log layout.
+    discovery.relabel "pods" {
+      targets = discovery.kubernetes.pods.targets
+
+      rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        target_label  = "namespace"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_name"]
+        target_label  = "pod"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_container_name"]
+        target_label  = "container"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_node_name"]
+        target_label  = "node"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_name", "__meta_kubernetes_pod_uid"]
+        separator     = ";"
+        regex         = "(.+);(.+);(.+)"
+        target_label  = "__path__"
+        replacement   = "/var/log/pods/${1}_${2}_${3}/*/*.log"
+      }
+    }
+
+    // Only watch the homelab namespace to keep volume manageable; widen this
+    // selector later if you want kube-system/argocd logs too.
+    discovery.relabel "homelab_only" {
+      targets = discovery.relabel.pods.output
+
+      rule {
+        source_labels = ["namespace"]
+        regex         = "homelab"
+        action        = "keep"
+      }
+    }
+
+    local.file_match "pod_logs" {
+      path_targets = discovery.relabel.homelab_only.output
+    }
+
+    loki.source.file "pod_logs" {
+      targets    = local.file_match.pod_logs.targets
+      forward_to = [loki.process.pod_logs.receiver]
+    }
+
+    // containerd writes structured JSON log lines; pull out the actual log
+    // message and timestamp instead of shipping the raw JSON wrapper.
+    loki.process "pod_logs" {
+      forward_to = [loki.write.default.receiver]
+
+      stage.cri {}
+    }
+
+    loki.write "default" {
+      endpoint {
+        url = "{{ .Values.lokiUrl }}"
+      }
+    }
