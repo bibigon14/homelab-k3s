@@ -3,3 +3,4 @@ charts/*/values.secret.yaml
 certs/*.key
 certs/*.csr
 certs/*.srl
+secret-values-iptv.yaml
