@@ -13,7 +13,7 @@ spec:
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
-      backoffLimit: 0
+      backoffLimit: {{ .Values.backoffLimit | default 2 }}
       template:
         spec:
           restartPolicy: Never
@@ -46,7 +46,7 @@ spec:
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
-      backoffLimit: 0
+      backoffLimit: {{ .Values.backoffLimit | default 2 }}
       template:
         spec:
           restartPolicy: Never
@@ -79,7 +79,7 @@ spec:
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
-      backoffLimit: 0
+      backoffLimit: {{ .Values.backoffLimit | default 2 }}
       template:
         spec:
           restartPolicy: Never

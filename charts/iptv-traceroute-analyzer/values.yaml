@@ -33,3 +33,5 @@ env:
   INFLUX_URL: ""
   TELEGRAM_CHAT_ID: ""
   TELEGRAM_TOKEN: ""
+
+backoffLimit: 2
