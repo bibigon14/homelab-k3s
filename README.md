@@ -43,6 +43,9 @@ ingress/
   influxdb-ingress.yaml               # IngressRoute: influxdb.homelab.local
   pihole-ingress.yaml                 # IngressRoute: pihole.homelab.local
   cadvisor-ingress.yaml               # IngressRoute: cadvisor.homelab.local
+  thanos-ingress.yaml                 # IngressRoute: thanos.homelab.local
+  alertmanager-ingress.yaml           # IngressRoute: alertmanager.homelab.local
+  prometheus-ingress.yaml             # IngressRoute: prometheus.homelab.local
 certs/
   ca.crt                              # Homelab CA certificate (add to Keychain for trusted TLS)
   homelab.local.crt                   # Wildcard cert for *.homelab.local
@@ -96,6 +99,21 @@ Alloy discovers pods via the Kubernetes API (`discovery.kubernetes`), filters to
 Exposed via `NodePort 30811` (same reasoning as kube-state-metrics/argocd-metrics — Grafana runs on the host, outside the cluster, with no DNS resolution for in-cluster Service names like `loki`). Add it as a Grafana data source pointing at `http://localhost:30811`, type Loki.
 
 On first deploy this immediately surfaced two real issues that had been invisible without searchable logs: a Telegram `getUpdates` `409 Conflict` (two long-pollers fighting over one bot token) and a `kube-state-metrics` RBAC gap on `mutatingwebhookconfigurations` at cluster scope.
+
+### thanos
+
+[Thanos](https://thanos.io/) v0.41.0 — long-term metric storage with unlimited retention, deployed as four systemd services on the host (not in k3s, since Prometheus itself runs on the host):
+
+- **Sidecar** (`:10901` gRPC, `:19191` HTTP) — connects to Prometheus TSDB, ships completed 2h blocks to object storage
+- **Store Gateway** (`:10902` gRPC, `:19192` HTTP) — serves historical blocks from object storage for queries
+- **Query** (`:10903` gRPC, `:19193` HTTP) — unified PromQL endpoint, fans out to Sidecar (real-time) + Store (historical)
+- **Compactor** (`:19194` HTTP) — compacts and downsamples blocks in object storage
+
+Object storage: **Cloudflare R2** bucket `homelab-thanos` (WNAM region, S3-compatible API, free egress). Config at `/etc/thanos/objstore.yml`. Prometheus was reconfigured with `--storage.tsdb.min-block-duration=2h --storage.tsdb.max-block-duration=2h` to produce Thanos-compatible blocks (disables Prometheus's own compaction — Thanos Compactor handles it instead).
+
+Added as a Grafana datasource ("Thanos", type Prometheus, `http://localhost:19193`). All existing PromQL queries and dashboards work unchanged — just switch the datasource selector from "prometheus" to "Thanos" for unlimited time range.
+
+**UI:** `https://thanos.homelab.local`
 
 ## Helm
 
@@ -245,6 +263,9 @@ All homelab services are exposed via Traefik with a wildcard TLS certificate for
 | `https://influxdb.homelab.local` | InfluxDB | 8086 |
 | `https://pihole.homelab.local` | Pi-hole | 8090 |
 | `https://cadvisor.homelab.local` | cAdvisor | 8080 |
+| `https://thanos.homelab.local` | Thanos Query | 19193 |
+| `https://alertmanager.homelab.local` | Alertmanager | 9093 |
+| `https://prometheus.homelab.local` | Prometheus | 9090 |
 
 > Note: Pi-hole web interface was moved from port 80 to 8090 to avoid conflict with Traefik.
 
@@ -259,6 +280,7 @@ Some services are reached directly via NodePort rather than through Traefik/TLS 
 | `30809` | kube-state-metrics | Prometheus scrape target |
 | `30810` | argocd-metrics | Prometheus scrape target |
 | `30811` | loki | Grafana data source query target |
+| `19193` | thanos-query | Grafana data source + UI (host systemd, not NodePort) |
 
 ### TLS setup
 
@@ -279,7 +301,10 @@ sudo pihole-FTL --config dns.hosts '[
   "192.168.50.212 homebridge.homelab.local",
   "192.168.50.212 influxdb.homelab.local",
   "192.168.50.212 pihole.homelab.local",
-  "192.168.50.212 cadvisor.homelab.local"
+  "192.168.50.212 cadvisor.homelab.local",
+  "192.168.50.212 thanos.homelab.local",
+  "192.168.50.212 alertmanager.homelab.local",
+  "192.168.50.212 prometheus.homelab.local"
 ]'
 sudo systemctl restart pihole-FTL
 ```
