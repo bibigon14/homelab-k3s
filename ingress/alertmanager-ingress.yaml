@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager-external
+  namespace: default
+spec:
+  ports:
+    - port: 9093
+      targetPort: 9093
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: alertmanager-external
+  namespace: default
+subsets:
+  - addresses:
+      - ip: 192.168.50.212
+    ports:
+      - port: 9093
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: alertmanager
+  namespace: default
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`alertmanager.homelab.local`)
+      kind: Rule
+      services:
+        - name: alertmanager-external
+          port: 9093
+  tls:
+    secretName: homelab-tls
