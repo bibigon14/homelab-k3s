@@ -11,7 +11,7 @@ spec:
     path: charts/wc2026bot
   destination:
     server: https://kubernetes.default.svc
-    namespace: homelab
+    namespace: apps
   syncPolicy:
     automated:
       prune: true

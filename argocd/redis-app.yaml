@@ -11,7 +11,7 @@ spec:
     path: charts/redis
   destination:
     server: https://kubernetes.default.svc
-    namespace: homelab
+    namespace: apps
   syncPolicy:
     automated:
       prune: true
