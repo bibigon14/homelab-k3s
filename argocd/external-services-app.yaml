@@ -16,3 +16,11 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - RespectIgnoreDifferences=true
+  ignoreDifferences:
+    - group: discovery.k8s.io
+      kind: EndpointSlice
+      jsonPointers:
+        - /endpoints
+        - /ports
