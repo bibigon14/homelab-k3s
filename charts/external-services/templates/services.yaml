@@ -35,7 +35,7 @@ metadata:
 spec:
   redirectRegex:
     regex: ^https://{{ $svc.host | replace "." "\\." }}/?$
-    replacement: https://\{\{ $svc.host }}{{ $svc.redirectToPath }}
+    replacement: https://{{ $svc.host }}{{ $svc.redirectToPath }}
     permanent: true
 {{- end }}
 ---
