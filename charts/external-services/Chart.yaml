@@ -1,0 +1,6 @@
+apiVersion: v2
+name: external-services
+description: External services pointing to host (192.168.50.212)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

@@ -1,0 +1,32 @@
+hostIP: "192.168.50.212"
+tlsSecret: "homelab-tls"
+
+services:
+  alertmanager:
+    port: 9093
+    host: alertmanager.homelab.local
+  cadvisor:
+    port: 8080
+    host: cadvisor.homelab.local
+  grafana:
+    port: 3000
+    host: grafana.homelab.local
+  homebridge:
+    port: 8581
+    host: homebridge.homelab.local
+  influxdb:
+    port: 8086
+    host: influxdb.homelab.local
+  pihole:
+    port: 8090
+    host: pihole.homelab.local
+    redirectToPath: /admin/
+  prometheus:
+    port: 9090
+    host: prometheus.homelab.local
+  thanos:
+    port: 19193
+    host: thanos.homelab.local
+  uptime-kuma:
+    port: 3001
+    host: uptime-kuma.homelab.local

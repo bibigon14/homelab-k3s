@@ -1,0 +1,71 @@
+{{- range $name, $svc := .Values.services }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}-external
+  namespace: {{ $.Release.Namespace }}
+spec:
+  ports:
+    - port: {{ $svc.port }}
+      targetPort: {{ $svc.port }}
+      protocol: TCP
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: {{ $name }}-external
+  namespace: {{ $.Release.Namespace }}
+subsets:
+  - addresses:
+      - ip: {{ $.Values.hostIP }}
+    ports:
+      - port: {{ $svc.port }}
+{{- if $svc.redirectToPath }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ $name }}-redirect
+  namespace: {{ $.Release.Namespace }}
+spec:
+  redirectRegex:
+    regex: ^https://{{ $svc.host | replace "." "\\." }}/?$
+    replacement: https://\{\{ $svc.host }}{{ $svc.redirectToPath }}
+    permanent: true
+{{- end }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+{{- if $svc.redirectToPath }}
+    - match: Host(`{{ $svc.host }}`) && Path(`/`)
+      kind: Rule
+      priority: 30
+      middlewares:
+        - name: {{ $name }}-redirect
+      services:
+        - name: {{ $name }}-external
+          port: {{ $svc.port }}
+    - match: Host(`{{ $svc.host }}`)
+      kind: Rule
+      priority: 10
+      services:
+        - name: {{ $name }}-external
+          port: {{ $svc.port }}
+{{- else }}
+    - match: Host(`{{ $svc.host }}`)
+      kind: Rule
+      services:
+        - name: {{ $name }}-external
+          port: {{ $svc.port }}
+{{- end }}
+  tls:
+    secretName: {{ $.Values.tlsSecret }}
+{{- end }}
