@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "sre-analytics.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "sre-analytics.labels" . | nindent 4 }}
+spec:
+  schedule: "{{ .Values.schedule }}"
+  timeZone: "{{ .Values.timezone }}"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: sre-analytics
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              envFrom:
+                - secretRef:
+                    name: {{ include "sre-analytics.fullname" . }}-env
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}

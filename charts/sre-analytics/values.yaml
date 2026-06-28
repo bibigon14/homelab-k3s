@@ -1,0 +1,15 @@
+image:
+  repository: sre-analytics
+  tag: latest
+  pullPolicy: Never
+
+schedule: "0 8 * * *"
+timezone: "America/Los_Angeles"
+
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "10m"
+  limits:
+    memory: "128Mi"
+    cpu: "100m"
