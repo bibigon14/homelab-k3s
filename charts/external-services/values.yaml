@@ -29,5 +29,5 @@ services:
     host: thanos.homelab.local
   uptime-kuma:
     port: 3001
-    host: uptime-kuma.homelab.local
+    host: uptime.homelab.local
     redirectToPath: /dashboard/
