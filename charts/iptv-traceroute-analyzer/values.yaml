@@ -38,7 +38,7 @@ backoffLimit: 2
 
 bot:
   image:
-    repository: localhost:5000/iptv-analyzer
+    repository: iptv-traceroute-analyzer
     tag: latest
     pullPolicy: Never
   resources:
