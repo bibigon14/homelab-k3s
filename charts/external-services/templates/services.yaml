@@ -11,16 +11,20 @@ spec:
       targetPort: {{ $svc.port }}
       protocol: TCP
 ---
-apiVersion: v1
-kind: Endpoints
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
 metadata:
   name: {{ $name }}-external
   namespace: {{ $.Release.Namespace }}
-subsets:
+  labels:
+    kubernetes.io/service-name: {{ $name }}-external
+addressType: IPv4
+endpoints:
   - addresses:
-      - ip: {{ $.Values.hostIP }}
-    ports:
-      - port: {{ $svc.port }}
+      - {{ $.Values.hostIP }}
+ports:
+  - port: {{ $svc.port }}
+    protocol: TCP
 {{- if $svc.redirectToPath }}
 ---
 apiVersion: traefik.io/v1alpha1
