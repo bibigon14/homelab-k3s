@@ -11,7 +11,7 @@ spec:
     path: charts/alloy
   destination:
     server: https://kubernetes.default.svc
-    namespace: homelab
+    namespace: monitoring
   syncPolicy:
     automated:
       prune: true
