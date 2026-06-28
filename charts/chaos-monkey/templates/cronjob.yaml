@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "chaos-monkey.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chaos-monkey.labels" . | nindent 4 }}
+spec:
+  schedule: "{{ .Values.schedule }}"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: {{ include "chaos-monkey.fullname" . }}
+          containers:
+            - name: chaos
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - sh
+                - -c
+                - |
+                  POD=$(kubectl get pods -A --no-headers \
+                    --field-selector=status.phase=Running | \
+                    grep -v "{{ .Values.excludeNamespaces }}" | \
+                    shuf -n 1)
+                  NS=$(echo $POD | awk '{print $1}')
+                  NAME=$(echo $POD | awk '{print $2}')
+                  echo "Killing $NAME in $NS"
+                  kubectl delete pod $NAME -n $NS

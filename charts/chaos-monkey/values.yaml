@@ -1,0 +1,8 @@
+image:
+  repository: bitnami/kubectl
+  tag: latest
+  pullPolicy: Always
+
+schedule: "0 * * * *"
+
+excludeNamespaces: "kube-system|monitoring|chaos|argocd|external-secrets"
