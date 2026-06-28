@@ -35,3 +35,16 @@ env:
   TELEGRAM_TOKEN: ""
 
 backoffLimit: 2
+
+bot:
+  image:
+    repository: localhost:5000/iptv-analyzer
+    tag: latest
+    pullPolicy: Never
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "10m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"

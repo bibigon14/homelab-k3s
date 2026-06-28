@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "iptv.fullname" . }}-bot
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "iptv.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "iptv.fullname" . }}-bot
+  template:
+    metadata:
+      labels:
+        app: {{ include "iptv.fullname" . }}-bot
+        {{- include "iptv.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: bot
+          image: "{{ .Values.bot.image.repository }}:{{ .Values.bot.image.tag }}"
+          imagePullPolicy: {{ .Values.bot.image.pullPolicy }}
+          command: ["python3", "bot.py"]
+          envFrom:
+            - secretRef:
+                name: {{ include "iptv.fullname" . }}-env
+          resources:
+            {{- toYaml .Values.bot.resources | nindent 12 }}
