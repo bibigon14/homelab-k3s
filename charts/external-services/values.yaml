@@ -30,3 +30,4 @@ services:
   uptime-kuma:
     port: 3001
     host: uptime-kuma.homelab.local
+    redirectToPath: /dashboard/
