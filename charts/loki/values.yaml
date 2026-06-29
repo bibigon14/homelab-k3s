@@ -20,4 +20,4 @@ storage:
 
 retention:
   # How long to keep logs. Loki enforces this via compactor retention.
-  period: 168h  # 7 days
+  period: 720h  # 30 days
