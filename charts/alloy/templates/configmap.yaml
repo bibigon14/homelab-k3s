@@ -41,20 +41,20 @@ data:
       }
     }
 
-    // Only watch the homelab namespace to keep volume manageable; widen this
+    // Watch apps and monitoring namespaces
     // selector later if you want kube-system/argocd logs too.
-    discovery.relabel "homelab_only" {
+    discovery.relabel "watched_namespaces" {
       targets = discovery.relabel.pods.output
 
       rule {
         source_labels = ["namespace"]
-        regex         = "homelab|apps|monitoring"
+        regex         = "apps|monitoring"
         action        = "keep"
       }
     }
 
     local.file_match "pod_logs" {
-      path_targets = discovery.relabel.homelab_only.output
+      path_targets = discovery.relabel.watched_namespaces.output
     }
 
     loki.source.file "pod_logs" {
