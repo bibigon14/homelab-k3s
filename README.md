@@ -281,3 +281,17 @@ helm list -n monitoring
 ## License
 
 MIT
+
+## Grafana
+
+Datasources provisioned via `/etc/grafana/provisioning/datasources/homelab.yaml`.
+
+Template stored in `grafana/datasources.yaml`. On fresh install:
+
+```bash
+sudo mkdir -p /etc/grafana/provisioning/datasources
+sudo cp grafana/datasources.yaml /etc/grafana/provisioning/datasources/homelab.yaml
+# Replace REPLACE_WITH_INFLUXDB_TOKEN with actual token from InfluxDB UI → Load Data → API Tokens
+sudo nano /etc/grafana/provisioning/datasources/homelab.yaml
+sudo systemctl restart grafana-server
+```
