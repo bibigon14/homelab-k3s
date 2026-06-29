@@ -12,6 +12,22 @@ spec:
     helm:
       values: |
         reportingEnabled: false
+        extraObjects:
+          - apiVersion: v1
+            kind: Service
+            metadata:
+              name: tempo-query-frontend-nodeport
+              namespace: monitoring
+            spec:
+              type: NodePort
+              selector:
+                app.kubernetes.io/component: query-frontend
+                app.kubernetes.io/instance: tempo
+              ports:
+                - name: http
+                  port: 3200
+                  targetPort: 3200
+                  nodePort: 30845
         minio:
           enabled: false
         ingester:
