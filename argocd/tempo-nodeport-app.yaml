@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tempo-nodeport
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/bibigon14/homelab-k3s.git
+    targetRevision: main
+    path: ingress
+    directory:
+      include: "tempo-nodeport.yaml"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
