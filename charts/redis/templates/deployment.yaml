@@ -18,6 +18,10 @@ spec:
       containers:
         - name: redis
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args:
+            - redis-server
+            - --appendonly {{ .Values.config.appendonly }}
+            - --appendfsync {{ .Values.config.appendfsync }}
           ports:
             - containerPort: {{ .Values.service.port }}
           volumeMounts:
