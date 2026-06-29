@@ -8,9 +8,7 @@ spec:
   source:
     repoURL: https://github.com/bibigon14/homelab-k3s.git
     targetRevision: main
-    path: ingress
-    directory:
-      include: "tempo-nodeport.yaml"
+    path: manifests
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
