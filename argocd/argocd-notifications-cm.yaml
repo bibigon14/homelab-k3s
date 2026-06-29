@@ -1,0 +1,43 @@
+apiVersion: v1
+data:
+  defaultTriggers: |
+    - on-sync-failed
+    - on-health-degraded
+  service.telegram: |
+    token: $telegram-token
+  template.app-health-degraded: |
+    message: |
+      ⚠️ *{{.app.metadata.name}}* is DEGRADED
+      Namespace: `{{.app.spec.destination.namespace}}`
+  template.app-sync-failed: "message: |\n  \U0001F534 *{{.app.metadata.name}}* sync
+    FAILED\n  Namespace: `{{.app.spec.destination.namespace}}`\n  Error: {{.app.status.operationState.message}}\n"
+  template.app-sync-succeeded: |
+    message: |
+      ✅ *{{.app.metadata.name}}* synced successfully
+      Namespace: `{{.app.spec.destination.namespace}}`
+  trigger.on-health-degraded: |
+    - when: app.status.health.status == 'Degraded'
+      send: [app-health-degraded]
+  trigger.on-sync-failed: |
+    - when: app.status.operationState.phase in ['Error', 'Failed']
+      send: [app-sync-failed]
+  trigger.on-sync-succeeded: |
+    - when: app.status.operationState.phase in ['Succeeded']
+      send: [app-sync-succeeded]
+kind: ConfigMap
+metadata:
+  annotations:
+      on-sync-failed\\n- on-health-degraded\\n\",\"service.telegram\":\"token: $telegram-token\\n\",\"template.app-health-degraded\":\"message:
+      |\\n  ⚠️ *{{.app.metadata.name}}* is DEGRADED\\n  Namespace: `{{.app.spec.destination.namespace}}`\\n\",\"template.app-sync-failed\":\"message:
+      |\\n  \U0001F534 *{{.app.metadata.name}}* sync FAILED\\n  Namespace: `{{.app.spec.destination.namespace}}`\\n
+      \ Error: {{.app.status.operationState.message}}\\n\",\"template.app-sync-succeeded\":\"message:
+      |\\n  ✅ *{{.app.metadata.name}}* synced successfully\\n  Namespace: `{{.app.spec.destination.namespace}}`\\n\",\"trigger.on-health-degraded\":\"-
+      when: app.status.health.status == 'Degraded'\\n  send: [app-health-degraded]\\n\",\"trigger.on-sync-failed\":\"-
+      when: app.status.operationState.phase in ['Error', 'Failed']\\n  send: [app-sync-failed]\\n\",\"trigger.on-sync-succeeded\":\"-
+      when: app.status.operationState.phase in ['Succeeded']\\n  send: [app-sync-succeeded]\\n\"},\"kind\":\"ConfigMap\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/component\":\"notifications-controller\",\"app.kubernetes.io/name\":\"argocd-notifications-controller\",\"app.kubernetes.io/part-of\":\"argocd\"},\"name\":\"argocd-notifications-cm\",\"namespace\":\"argocd\"}}\n"
+  labels:
+    app.kubernetes.io/component: notifications-controller
+    app.kubernetes.io/name: argocd-notifications-controller
+    app.kubernetes.io/part-of: argocd
+  name: argocd-notifications-cm
+  namespace: argocd
