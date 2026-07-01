@@ -1,5 +1,5 @@
 image:
-  repository: wc2026-telegram-bot-wc2026bot
+  repository: wc2026-telegram-bot
   tag: latest
   pullPolicy: Never
 
