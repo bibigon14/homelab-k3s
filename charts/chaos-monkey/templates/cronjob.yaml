@@ -27,9 +27,10 @@ spec:
                 - |
                   POD=$(kubectl get pods -A --no-headers \
                     --field-selector=status.phase=Running | \
-                    grep -v "{{ .Values.excludeNamespaces }}" | \
+                    grep -vE "{{ .Values.excludeNamespaces }}" | grep -v "^$" | \
                     shuf -n 1)
                   NS=$(echo $POD | awk '{print $1}')
                   NAME=$(echo $POD | awk '{print $2}')
+                  [ -z "$NAME" ] && echo "No eligible pods found" && exit 0
                   echo "Killing $NAME in $NS"
                   kubectl delete pod $NAME -n $NS
