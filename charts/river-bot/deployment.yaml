@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "river-bot.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "river-bot.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  # IMPORTANT: this bot uses Telegram long-polling (getUpdates). If two pods
+  # were ever running at once (as RollingUpdate briefly allows), Telegram
+  # would reject one of them with "Conflict: terminated by other getUpdates
+  # request", and users could see duplicate replies in the meantime. Recreate
+  # guarantees the old pod is fully gone before the new one starts.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "river-bot.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "river-bot.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: river-bot
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: {{ include "river-bot.fullname" . }}-env
+          env:
+            - name: DATA_DIR
+              value: "/data"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "river-bot.fullname" . }}-data

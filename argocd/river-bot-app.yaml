@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: river-bot
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/bibigon14/homelab-k3s.git
+    targetRevision: main
+    path: charts/river-bot
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      jsonPointers:
+        - /data

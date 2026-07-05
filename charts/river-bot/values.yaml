@@ -1,0 +1,28 @@
+image:
+  repository: river-bot
+  tag: latest
+  pullPolicy: Never
+
+persistence:
+  size: 64Mi
+  storageClassName: local-path
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "50m"
+  limits:
+    memory: "384Mi"
+    cpu: "300m"
+
+# Real values come from a manually-created Secret (river-bot-env), not from
+# this file — see the "Secret" section in deploy notes. Keys listed here just
+# document what the chart expects the Secret to contain.
+env:
+  BOT_TOKEN: ""
+  CHAT_ID: ""
+  USGS_SITES: ""
+  SCHEDULE_TIME: ""
+  TIMEZONE: ""
+  SALMON_TEMP_THRESHOLD_F: ""
+  DEFAULT_LANGUAGE: ""
