@@ -9,8 +9,8 @@ spec:
   schedule: "{{ .Values.schedules.influxWriter }}"
   timeZone: "{{ .Values.timezone }}"
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
       backoffLimit: {{ .Values.backoffLimit | default 2 }}
@@ -42,8 +42,8 @@ spec:
   schedule: "{{ .Values.schedules.notify }}"
   timeZone: "{{ .Values.timezone }}"
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
       backoffLimit: {{ .Values.backoffLimit | default 2 }}
@@ -75,8 +75,8 @@ spec:
   schedule: "{{ .Values.schedules.autoSwitch }}"
   timeZone: "{{ .Values.timezone }}"
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
       backoffLimit: {{ .Values.backoffLimit | default 2 }}
