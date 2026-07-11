@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: grafana-sre
+  namespace: monitoring
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`grafana.sre.dstepanov.dev`)
+    kind: Rule
+    services:
+    - name: grafana-external
+      port: 3000
+  tls:
+    secretName: sre-tls
