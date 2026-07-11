@@ -3,6 +3,6 @@ image:
   tag: latest
   pullPolicy: Always
 
-schedule: "0 * * * *"
+schedule: "2 * * * *"
 
-excludeNamespaces: "kube-system|monitoring|chaos|argocd|external-secrets|secrets"
+excludeNamespaces: "kube-system|monitoring|chaos|argocd|external-secrets|secrets|cert-manager"
