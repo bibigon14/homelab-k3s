@@ -12,6 +12,7 @@ anyone interested in the operational history of this platform.
 
 | Date | Title | Severity |
 |---|---|---|
+| 2026-07-11 | [Pi-hole SQLite ARP deadlock caused homelab-wide DNS outage](./2026-07-11-postmortem-pihole-sqlite-arp-deadlock.md) | SEV-2 |
 | 2026-06-20 | [Quiet-hours suppression dropped resolved-alert notifications](./2026-06-20-quiet-hours-suppressed-resolved-alerts.md) | SEV-3 |
 | 2026-06-20 | [Telegram alert delivery silently broken by ArgoCD overwriting Secret data](./2026-06-20-argocd-secret-data-overwrite.md) | SEV-2 |
 | 2026-06-20 | [Code fixes silently not deployed for ~14 hours due to docker build / containerd image-store mismatch](./2026-06-20-docker-vs-containerd-image-store.md) | SEV-2 |
