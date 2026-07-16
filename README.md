@@ -8,6 +8,72 @@ Started on Docker Compose and systemd (see [wc2026-telegram-bot](https://github.
 
 This repo holds infrastructure manifests and Helm charts separately from application code — closer to how most teams split app repos from infra/GitOps repos in practice.
 
+## Architecture
+
+```mermaid
+graph TB
+    github["GitHub\nbibigon14/homelab-k3s"] -->|auto-sync on push| argocd
+
+    subgraph pi["Raspberry Pi 5 · 8 GB · 192.168.50.212"]
+
+        subgraph k3s["k3s Cluster"]
+            argocd["ArgoCD"]
+            traefik["Traefik Ingress"]
+
+            subgraph apps["apps namespace"]
+                bridge["alertmanager-bridge"]
+                redis["Redis"]
+                wc2026["wc2026bot"]
+                riverbot["river-bot"]
+                iptv["iptv-traceroute-analyzer"]
+                chaos["chaos-monkey"]
+            end
+
+            subgraph mon["monitoring namespace"]
+                loki["Loki"]
+                alloy["Grafana Alloy (DaemonSet)"]
+                tempo["Tempo Distributed"]
+                ksm["kube-state-metrics"]
+            end
+        end
+
+        subgraph host["Host — systemd"]
+            prometheus["Prometheus"]
+            grafana["Grafana"]
+            alertmanager["Alertmanager"]
+            thanos["Thanos sidecar · store · query · compactor"]
+            influxdb["InfluxDB"]
+            pihole["Pi-hole (DNS)"]
+            homebridge["Homebridge"]
+        end
+
+        subgraph docker["Docker"]
+            uptime["Uptime Kuma"]
+            cadvisor["cAdvisor"]
+        end
+    end
+
+    telegram["Telegram API"]
+
+    argocd -->|deploys| apps
+    argocd -->|deploys| mon
+    prometheus -->|scrapes| ksm
+    prometheus -->|scrapes| cadvisor
+    prometheus -->|remote_write| thanos
+    alloy -->|ships logs| loki
+    alertmanager -->|webhook| bridge
+    bridge -->|messages| telegram
+    wc2026 -->|messages| telegram
+    riverbot -->|messages| telegram
+    grafana -->|queries| prometheus
+    grafana -->|queries| loki
+    grafana -->|queries| tempo
+    grafana -->|queries| thanos
+    grafana -->|queries| influxdb
+    pihole -->|"*.homelab.local DNS"| traefik
+```
+
+
 ## Cluster
 
 - Single-node k3s on a Raspberry Pi 5 8GB
