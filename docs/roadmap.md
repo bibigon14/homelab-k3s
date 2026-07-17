@@ -15,7 +15,7 @@ Can start any time on the current single Pi 5.
 
 | Item | Status | Why |
 |------|--------|-----|
-| Kyverno (policy as code) | not started | Block deploys missing resource limits/probes - directly the gap that bit me on a recent k8s practical interview |
+| Kyverno (policy as code) | not started | Block deploys missing resource limits/probes - a common CrashLoopBackOff cause in my k8s troubleshooting practice |
 | Trivy image scanning in CI | not started | Scan images in GitHub Actions before they ever reach the cluster |
 | Argo Rollouts | not started | Canary/blue-green on top of ArgoCD, works fine even with replicas=1 today |
 
