@@ -63,3 +63,7 @@ Index: docs/postmortems/README.md
 Sections: summary, impact, timeline (UTC), root cause, contributing factors, action items, takeaways.
 
 Tone: blameless. The question is "what made this failure mode possible?", not "who did the wrong thing?".
+
+## Known gotchas
+
+- Several unrelated services down at once, self-resolving in a few minutes: check whether a `docker build` / `k3s ctr images import` was running. See docs/runbooks/local-image-builds.md.
