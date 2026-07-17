@@ -26,6 +26,9 @@ spec:
         - name: river-bot
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.service.port }}
           envFrom:
             - secretRef:
                 name: {{ include "river-bot.fullname" . }}-env

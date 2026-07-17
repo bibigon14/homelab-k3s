@@ -26,3 +26,8 @@ env:
   TIMEZONE: ""
   SALMON_TEMP_THRESHOLD_F: ""
   DEFAULT_LANGUAGE: ""
+
+service:
+  type: NodePort
+  port: 9121
+  nodePort: 30121
