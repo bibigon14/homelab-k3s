@@ -23,7 +23,7 @@ empty token produces a 404). Alert notifications stopped flowing entirely until
 the Secret was manually repopulated and the chart was restructured to prevent
 ArgoCD from rewriting it on future syncs.
 
-The same root cause — and the same data-loss pattern — was found in
+The same root cause - and the same data-loss pattern - was found in
 `wc2026bot-env` later in the day. That Secret was repopulated and patched in
 the same way.
 
@@ -73,8 +73,8 @@ the underlying manifest from being reapplied during sync.** The chart for both
 affected services rendered a Secret with empty string values pulled from
 `Values.*`, because the real secret values cannot live in git. As long as no
 sync occurred, the manually-patched live Secret retained its real values. Any
-sync — including syncs triggered by unrelated changes to other resources in the
-same Application — would re-render the chart and reapply the Secret with empty
+sync - including syncs triggered by unrelated changes to other resources in the
+same Application - would re-render the chart and reapply the Secret with empty
 values, silently overwriting the real data.
 
 This was not detectable in the ArgoCD UI because `ignoreDifferences` was
@@ -98,8 +98,8 @@ configured to ignore `/data` on Secrets, so the UI never reported an
    asserts `ok: true` would have surfaced the empty token within one
    livenessProbe cycle of any restart.
 4. **Single-operator environment with manual Secret management.** The standard
-   GitOps story for this problem — Sealed Secrets, External Secrets Operator,
-   SOPS — was never implemented because the homelab has a single operator and
+   GitOps story for this problem - Sealed Secrets, External Secrets Operator,
+   SOPS - was never implemented because the homelab has a single operator and
    the manual `kubectl apply` flow felt acceptable. It is acceptable only as
    long as no other process reapplies the resource.
 5. **`creationTimestamp` did not change despite overwrites.** When investigating,
@@ -112,7 +112,7 @@ configured to ignore `/data` on Secrets, so the UI never reported an
 ## What helped
 
 - **Cross-referencing `data` vs `last-applied-configuration` annotation.** Both
-  fields showed empty token, which proved this was not a partial update — it
+  fields showed empty token, which proved this was not a partial update - it
   was a full reapply with empty data.
 - **Reading the chart template directly.** Confirming that `secret.yaml`
   unconditionally renders `token: "{{ .Values.config.telegram.token }}"` made
@@ -137,7 +137,7 @@ configured to ignore `/data` on Secrets, so the UI never reported an
 | 2 | Remove `secret.yaml` from `bridge` chart templates; manage Secret imperatively | DS | Done (git `0e14844`) |
 | 3 | Same two changes for `wc2026bot-env` Secret | DS | Done (git `108cb12`, `5f4ec17`) |
 | 4 | Audit all other charts under `homelab-k3s/charts/` for `Secret` templates that render values from git-tracked `values.yaml`. Migrate any matches to the same pattern. | DS | Todo |
-| 5 | Add a startup-time `getMe` health assertion in `bridge.py` — if the bot's own identity check fails, exit with a non-zero status so the pod enters CrashLoopBackOff and the failure is visible as a pod condition, not as a quiet log line. | DS | Todo |
+| 5 | Add a startup-time `getMe` health assertion in `bridge.py` - if the bot's own identity check fails, exit with a non-zero status so the pod enters CrashLoopBackOff and the failure is visible as a pod condition, not as a quiet log line. | DS | Todo |
 | 6 | Evaluate External Secrets Operator (ESO) with a local provider (e.g. a file backend or 1Password Connect) for a long-term GitOps-clean solution. Document the decision either way as an ADR. | DS | Todo |
 | 7 | Add a Prometheus alert `BridgeNoTelegramTrafficInLastHour` based on a bridge-exported counter `bridge_telegram_sent_total`. If the rate drops to zero for >1h during business hours, alert. (Self-monitoring.) | DS | Todo |
 | 8 | Document this failure mode in the `homelab-k3s` README under "ArgoCD gotchas". | DS | This document |
@@ -155,8 +155,8 @@ configured to ignore `/data` on Secrets, so the UI never reported an
 - For single-operator homelabs running GitOps, the operational story for
   secrets needs to be decided up-front: either commit to sealed/encrypted
   secrets in git, or accept that Secrets live outside the GitOps surface and
-  design charts accordingly. Mixed models — Secret declared in chart with
-  empty values, real values applied manually — are a footgun.
+  design charts accordingly. Mixed models - Secret declared in chart with
+  empty values, real values applied manually - are a footgun.
 - Age of a Kubernetes object (`AGE` in `kubectl get`, `creationTimestamp` in
   YAML) does not tell you when its `data` was last mutated. Use
   `resourceVersion` or `managedFields[].time` when investigating mutation

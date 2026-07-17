@@ -12,9 +12,9 @@
 ## Summary
 
 Between approximately 2026-06-20 04:00 UTC and 16:24 UTC, repeated attempts to
-deploy a bug fix to `alertmanager-telegram-bridge` appeared to succeed —
+deploy a bug fix to `alertmanager-telegram-bridge` appeared to succeed -
 `docker build` reported success, `kubectl rollout restart` reported success,
-the new pod transitioned to `Running` — but the running pod continued to
+the new pod transitioned to `Running` - but the running pod continued to
 execute the old code. The root cause: `docker build` produces images in the
 Docker daemon's image store, but k3s does not use the Docker daemon. It uses
 containerd directly, with its own separate image store. The two stores are
@@ -51,10 +51,10 @@ image stores via `docker save | k3s ctr images import`.
 |---|---|
 | 2026-06-20 ~03:30 | Code fix authored locally for the quiet-hours bug (see [companion postmortem](./2026-06-20-quiet-hours-suppressed-resolved-alerts.md)). Patch transferred to Pi. |
 | 2026-06-20 ~03:35 | First `docker build -t alertmanager-telegram-bridge:latest .` succeeds. `kubectl rollout restart deploy/bridge -n homelab` succeeds. Pod transitions to `Running`. Operator considers the fix deployed. |
-| 2026-06-20 03:35–07:46 | Symptoms persist. New errors of an unrelated kind appear in logs (`HTTP Error 404`, separately tracked in the [Secret-overwrite postmortem](./2026-06-20-argocd-secret-data-overwrite.md)). Operator attributes "fix not yet observable" to alert quiet hours timing and to the still-broken-Secret issue. |
+| 2026-06-20 03:35-07:46 | Symptoms persist. New errors of an unrelated kind appear in logs (`HTTP Error 404`, separately tracked in the [Secret-overwrite postmortem](./2026-06-20-argocd-secret-data-overwrite.md)). Operator attributes "fix not yet observable" to alert quiet hours timing and to the still-broken-Secret issue. |
 | 2026-06-20 07:46 | After fixing the Secret issue, the bridge runs and sends alerts. Operator assumes the original quiet-hours fix is now in effect. |
 | 2026-06-20 16:18 | Further code changes shipped: a 40-second backoff on 409 errors, plus extended HTTP timeout for `getUpdates`. Same `docker build` + `kubectl rollout restart` workflow. Symptoms persist in logs: 409 spam at the rate of ~1/second, identical to pre-fix behavior. |
-| 2026-06-20 16:22 | Operator runs `kubectl exec ... grep -n 'ERROR_BACKOFF_SECONDS' /app/bridge.py` to confirm the new code is in the container. `command terminated with exit code 1` — the string is not present. New code is not in the running container. |
+| 2026-06-20 16:22 | Operator runs `kubectl exec ... grep -n 'ERROR_BACKOFF_SECONDS' /app/bridge.py` to confirm the new code is in the container. `command terminated with exit code 1` - the string is not present. New code is not in the running container. |
 | 2026-06-20 16:23 | Cross-check: `docker images alertmanager-telegram-bridge` shows image ID `346e893c4a0e`, created 2 minutes ago. `kubectl get pod -o jsonpath='{.status.containerStatuses[0].imageID}'` shows `sha256:69257aaea339...`. The two image stores are not in sync. |
 | 2026-06-20 16:23 | Root cause identified: k3s uses containerd, not Docker. |
 | 2026-06-20 16:24 | Mitigation: `docker save alertmanager-telegram-bridge:latest -o /tmp/bridge.tar && sudo k3s ctr images import /tmp/bridge.tar`. Containerd's image store now contains the new image. |
@@ -68,7 +68,7 @@ not use the Docker daemon for any image lookups.** When a pod is scheduled,
 the kubelet asks containerd whether the image referenced by the Deployment
 exists. Containerd consults its own image store
 (`/var/lib/rancher/k3s/agent/containerd/...`). If the image is present (under
-any prior provenance — initial pull, prior import, prior `crictl pull`),
+any prior provenance - initial pull, prior import, prior `crictl pull`),
 containerd uses it. The Docker daemon's image store
 (`/var/lib/docker/...`) is irrelevant to this lookup.
 
@@ -85,7 +85,7 @@ to different content in different stores is silently divergent.
    local, with no warning if "local" is in the wrong store.
 2. **`:latest` tag hides image identity from the operator.** A digest-pinned
    tag (`v0.3.2`, `git-abc1234`) would have surfaced the divergence at the
-   `docker build` step — the operator would have noticed the rebuild produced
+   `docker build` step - the operator would have noticed the rebuild produced
    a new digest while the Deployment still referenced the old tag.
 3. **`kubectl rollout restart` is not a deploy.** It restarts pods of an existing
    Deployment using the existing image reference. It does not pull, rebuild,
@@ -101,8 +101,8 @@ to different content in different stores is silently divergent.
    the Deployment was looking for `wc2026-telegram-bot-wc2026bot:latest` (the
    compose-project-name + service-name format that was originally used to
    build the image). This pattern is well-documented but easy to miss.
-6. **No deploy-verification check.** A simple post-deploy assertion — `kubectl
-   exec ... grep <known-string-from-new-code>` — would have caught the
+6. **No deploy-verification check.** A simple post-deploy assertion - `kubectl
+   exec ... grep <known-string-from-new-code>` - would have caught the
    mismatch immediately after the very first attempted deploy.
 
 ## Detection

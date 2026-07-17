@@ -16,7 +16,7 @@ resources:
     cpu: "300m"
 
 # Real values come from a manually-created Secret (river-bot-env), not from
-# this file — see the "Secret" section in deploy notes. Keys listed here just
+# this file - see the "Secret" section in deploy notes. Keys listed here just
 # document what the chart expects the Secret to contain.
 env:
   BOT_TOKEN: ""

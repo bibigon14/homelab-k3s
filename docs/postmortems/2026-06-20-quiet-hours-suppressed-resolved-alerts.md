@@ -13,7 +13,7 @@
 
 The `alertmanager-telegram-bridge` service relays Prometheus Alertmanager
 notifications to Telegram. To reduce off-hours noise, it implements a
-"quiet hours" window (23:00–07:00 PT) during which non-critical (warning,
+"quiet hours" window (23:00-07:00 PT) during which non-critical (warning,
 info) notifications are suppressed.
 
 The implementation suppressed all non-critical traffic during the quiet window
@@ -27,7 +27,7 @@ on its own; no action needed", because in both cases the chat showed nothing.
 For the operator's mental model of the system, this is worse than receiving
 both notifications and worse than receiving neither: the absence of a resolve
 notification, combined with the absence of a firing notification, is
-indistinguishable from "nothing happened" — even when something did happen and
+indistinguishable from "nothing happened" - even when something did happen and
 might still be happening.
 
 The fix is to route `resolved` notifications around the quiet-hours filter
@@ -45,7 +45,7 @@ sleep hours.
   `iptv-influx-writer` CronJob fired and (apparently) self-resolved during
   the quiet window. The operator awoke to no notifications and had to manually
   query Alertmanager to confirm that no alerts were currently active.
-- **No production user impact** — these are infra alerts on personal
+- **No production user impact** - these are infra alerts on personal
   infrastructure. The risk pattern would have been more serious in a
   multi-operator on-call environment.
 
@@ -57,9 +57,9 @@ sleep hours.
 | 2026-06-20 05:35 | `KubeJobFailed` warning alert fires for `iptv-influx-writer-29698890`. Bridge log: `Alert KubeJobFailed → 85698759: sent`. Operator receives Telegram message. |
 | 2026-06-20 05:45 | `KubePodNotReady` warning for the same workload. `Alert KubePodNotReady → 85698759: sent`. Operator receives Telegram message. |
 | 2026-06-20 06:00 (= 23:00 PT) | Quiet hours begin. Alertmanager continues to send `firing` repeat notifications via webhook every `repeat_interval` (5min by default). Bridge log: `Suppressed (quiet hours): alertname=KubeJobFailed ...` and same for `KubePodNotReady`. These repeats correctly fail to wake the operator. |
-| 2026-06-20 06:00 – 14:00 | Workload presumably stabilizes; Alertmanager generates `resolved` notifications. Bridge applies the same `Suppressed (quiet hours)` rule. Resolved notifications are silently dropped. |
+| 2026-06-20 06:00 - 14:00 | Workload presumably stabilizes; Alertmanager generates `resolved` notifications. Bridge applies the same `Suppressed (quiet hours)` rule. Resolved notifications are silently dropped. |
 | 2026-06-20 14:00 (= 07:00 PT) | Quiet hours end. Alerts already resolved at this point: no further notifications generated. |
-| 2026-06-20 15:00–16:00 | Operator reviews logs and Telegram chat after waking up. Last visible notifications are from before the quiet window. No `resolved` notifications. Operator queries Alertmanager directly: `curl /api/v2/alerts \| jq` returns an empty list. Operator realizes the alert pipeline cannot distinguish "still firing, silenced" from "resolved, silenced". |
+| 2026-06-20 15:00-16:00 | Operator reviews logs and Telegram chat after waking up. Last visible notifications are from before the quiet window. No `resolved` notifications. Operator queries Alertmanager directly: `curl /api/v2/alerts \| jq` returns an empty list. Operator realizes the alert pipeline cannot distinguish "still firing, silenced" from "resolved, silenced". |
 | 2026-06-20 16:18 | Code change drafted: in `bridge.py`'s `_process()` method, the `quiet and not is_crit` suppression check is moved after the `status == "resolved"` branch. Resolved notifications now bypass quiet-hours and throttle, and additionally clear any throttle-store entry for that fingerprint. Four regression tests added. |
 | 2026-06-20 16:24 | Code fix deployed to production after resolving the [docker/containerd image-store mismatch](./2026-06-20-docker-vs-containerd-image-store.md). |
 | 2026-06-20 16:34 | Fix observed working: tested by sending a synthetic resolved-warning webhook during the daytime (not in quiet hours) and confirmed the codepath was exercised in tests; full overnight validation pending the next nightly cycle. |

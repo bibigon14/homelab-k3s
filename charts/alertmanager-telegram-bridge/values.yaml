@@ -1,6 +1,6 @@
 replicaCount: 1
 
-# Container timezone — affects log timestamps and any
+# Container timezone - affects log timestamps and any
 # time-of-day logic that does not pass an explicit tz.
 timezone: "America/Los_Angeles"
 

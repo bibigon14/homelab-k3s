@@ -4,7 +4,7 @@ Mirrors the `wc2026bot` setup: image built locally on the node
 (`pullPolicy: Never`, no registry), Helm chart lives in `homelab-k3s`,
 config/secrets via a manually-created Secret, ArgoCD auto-syncs the chart.
 
-## 0. Stop the systemd version first — important
+## 0. Stop the systemd version first - important
 
 The bot uses Telegram long-polling. If the systemd service on the Pi and a
 new k8s pod are both polling the same `BOT_TOKEN` at once, Telegram will
@@ -29,7 +29,7 @@ docker images | grep river-bot   # sanity check
 ```
 
 **Important:** this k3s node runs its own containerd, not the Docker daemon
-— `docker build` puts the image in Docker's store, which containerd/kubelet
+- `docker build` puts the image in Docker's store, which containerd/kubelet
 can't see. With `pullPolicy: Never` you must import it explicitly:
 
 ```bash
@@ -62,7 +62,7 @@ cd /path/to/homelab-k3s
 mkdir -p charts/river-bot/templates
 # IMPORTANT: Chart.yaml and values.yaml go directly under charts/river-bot/,
 # but _helpers.tpl, deployment.yaml and pvc.yaml MUST go under
-# charts/river-bot/templates/ — Helm only renders files in templates/.
+# charts/river-bot/templates/ - Helm only renders files in templates/.
 
 git add charts/river-bot argocd/river-bot-app.yaml
 git commit -m "Add river-bot Helm chart"
@@ -94,14 +94,14 @@ kubectl logs -n apps -l app.kubernetes.io/name=river-bot -f
 ```
 
 If the pod shows `ErrImageNeverPull`, the image wasn't imported into
-containerd — go back and run the `k3s ctr images import` step above.
+containerd - go back and run the `k3s ctr images import` step above.
 
-In Telegram, send `/now` — should get a response from the pod, not the old
+In Telegram, send `/now` - should get a response from the pod, not the old
 systemd process (which is now stopped).
 
 ## Updating later
 
-Push chart changes to `homelab-k3s` — ArgoCD's `selfHeal`/`automated` sync
+Push chart changes to `homelab-k3s` - ArgoCD's `selfHeal`/`automated` sync
 policy picks them up (use the hard-refresh command above to skip the poll
 delay). If you change `bot.py`, you must rebuild **and re-import** the image,
 then restart the pod:

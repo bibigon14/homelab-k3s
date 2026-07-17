@@ -1,12 +1,12 @@
 # homelab-k3s
 
-Kubernetes manifests and Helm charts for my Raspberry Pi 5 homelab — a single-node [k3s](https://k3s.io/) cluster managed via [Helm](https://helm.sh/) and [ArgoCD](https://argo-cd.readthedocs.io/).
+Kubernetes manifests and Helm charts for my Raspberry Pi 5 homelab - a single-node [k3s](https://k3s.io/) cluster managed via [Helm](https://helm.sh/) and [ArgoCD](https://argo-cd.readthedocs.io/).
 
 ## Why
 
 Started on Docker Compose and systemd (see [wc2026-telegram-bot](https://github.com/bibigon14/wc2026-telegram-bot), [alertmanager-telegram-bridge](https://github.com/bibigon14/alertmanager-telegram-bridge), [iptv-traceroute-analyzer](https://github.com/bibigon14/iptv-traceroute-analyzer)), then migrated everything to k3s and progressively added Helm packaging, GitOps-style delivery via ArgoCD, and Traefik-based ingress with local TLS for all homelab services.
 
-This repo holds infrastructure manifests and Helm charts separately from application code — closer to how most teams split app repos from infra/GitOps repos in practice.
+This repo holds infrastructure manifests and Helm charts separately from application code - closer to how most teams split app repos from infra/GitOps repos in practice.
 
 ## Architecture
 
@@ -37,7 +37,7 @@ graph TB
             end
         end
 
-        subgraph host["Host — systemd"]
+        subgraph host["Host - systemd"]
             prometheus["Prometheus"]
             grafana["Grafana"]
             alertmanager["Alertmanager"]
@@ -78,7 +78,7 @@ graph TB
 
 - Single-node k3s on a Raspberry Pi 5 8GB
 - `local-path` is the default StorageClass (k3s built-in)
-- Traefik ingress controller (k3s default) — used for all `*.homelab.local` services
+- Traefik ingress controller (k3s default) - used for all `*.homelab.local` services
 
 ## Namespaces
 
@@ -140,7 +140,7 @@ Shared cache and state store used by `wc2026bot` and `iptv-notify`/`iptv-auto-sw
 
 #### wc2026bot
 
-[World Cup 2026 Telegram bot](https://github.com/bibigon14/wc2026-telegram-bot) — Redis-cached API calls, per-user rate limiting. `access.log` persisted to a 64Mi PVC via `subPath` mount (initContainer ensures the file exists before the main container starts).
+[World Cup 2026 Telegram bot](https://github.com/bibigon14/wc2026-telegram-bot) - Redis-cached API calls, per-user rate limiting. `access.log` persisted to a 64Mi PVC via `subPath` mount (initContainer ensures the file exists before the main container starts).
 
 > If `local-path`'s PVC is ever recreated (helm uninstall/install, PV reclaim), the backing directory under `/var/lib/rancher/k3s/storage/` gets a new name (it's keyed by PV UID), silently breaking any symlink pointing at the old path. See `relink-logs.sh` in the [wc2026-telegram-bot](https://github.com/bibigon14/wc2026-telegram-bot) repo for a script that re-detects the current path via `kubectl` and fixes the symlink.
 
@@ -150,12 +150,12 @@ Shared cache and state store used by `wc2026bot` and `iptv-notify`/`iptv-auto-sw
 
 #### iptv (iptv-traceroute-analyzer)
 
-[IPTV server health monitor](https://github.com/bibigon14/iptv-traceroute-analyzer) — Deployment + three CronJobs:
+[IPTV server health monitor](https://github.com/bibigon14/iptv-traceroute-analyzer) - Deployment + three CronJobs:
 
-- `iptv-bot` — Telegram bot for IPTV status queries
-- `iptv-influx-writer` — every 30 min, `mtr`-based checks against 8 servers, writes to InfluxDB
-- `iptv-notify` — at :15 and :45, 7am–11pm Pacific, Telegram alerts on degradation (dedup via Redis)
-- `iptv-auto-switch` — hourly, switches active IPTV server based on hysteresis logic
+- `iptv-bot` - Telegram bot for IPTV status queries
+- `iptv-influx-writer` - every 30 min, `mtr`-based checks against 8 servers, writes to InfluxDB
+- `iptv-notify` - at :15 and :45, 7am-11pm Pacific, Telegram alerts on degradation (dedup via Redis)
+- `iptv-auto-switch` - hourly, switches active IPTV server based on hysteresis logic
 
 All jobs require `NET_RAW`/`NET_ADMIN` capabilities for `mtr`. Secrets managed via ESO (`ExternalSecret` → `ClusterSecretStore: kubernetes-secrets` → `secrets/iptv-secrets`).
 
@@ -163,17 +163,17 @@ All jobs require `NET_RAW`/`NET_ADMIN` capabilities for `mtr`. Secrets managed v
 
 #### sre-analytics
 
-CronJob running daily at 8am Pacific — collects Cloudflare analytics (zone stats, KV metrics) and posts a summary to Telegram. Secrets in `sre-analytics-env`.
+CronJob running daily at 8am Pacific - collects Cloudflare analytics (zone stats, KV metrics) and posts a summary to Telegram. Secrets in `sre-analytics-env`.
 
 #### chaos-monkey
 
-CronJob running hourly — picks a random running pod outside system namespaces and deletes it. Tests workload resilience. Has its own `ServiceAccount` + `ClusterRole` with pod delete permissions only.
+CronJob running hourly - picks a random running pod outside system namespaces and deletes it. Tests workload resilience. Has its own `ServiceAccount` + `ClusterRole` with pod delete permissions only.
 
 ### monitoring namespace
 
 #### kube-state-metrics
 
-Kubernetes object-state exporter — Prometheus metrics for Pod/Deployment/Job/CronJob/PVC status. Backed by a ClusterRole with read-only access. Exposed via `NodePort 30809` for host-based Prometheus scraping.
+Kubernetes object-state exporter - Prometheus metrics for Pod/Deployment/Job/CronJob/PVC status. Backed by a ClusterRole with read-only access. Exposed via `NodePort 30809` for host-based Prometheus scraping.
 
 #### loki + alloy
 
@@ -183,11 +183,11 @@ Alloy discovers pods via the Kubernetes API, collects logs from `apps`, `monitor
 
 #### tempo
 
-[Tempo](https://grafana.com/oss/tempo/) distributed tracing — deployed via upstream `grafana/tempo-distributed` chart (v1.61.3, single-replica mode). Components: distributor, ingester, querier, query-frontend, compactor, memcached. Accepts OTLP traces via gRPC (4317) and HTTP (4318). Local filesystem storage.
+[Tempo](https://grafana.com/oss/tempo/) distributed tracing - deployed via upstream `grafana/tempo-distributed` chart (v1.61.3, single-replica mode). Components: distributor, ingester, querier, query-frontend, compactor, memcached. Accepts OTLP traces via gRPC (4317) and HTTP (4318). Local filesystem storage.
 
 #### external-services
 
-Services + EndpointSlices + IngressRoutes for host-based services (Prometheus, Grafana, InfluxDB, etc.). All pointing to `192.168.50.212`. Managed by ArgoCD — EndpointSlices are tracked since `discovery.k8s.io/EndpointSlice` was removed from ArgoCD resource exclusions in `argocd-cm.yaml`.
+Services + EndpointSlices + IngressRoutes for host-based services (Prometheus, Grafana, InfluxDB, etc.). All pointing to `192.168.50.212`. Managed by ArgoCD - EndpointSlices are tracked since `discovery.k8s.io/EndpointSlice` was removed from ArgoCD resource exclusions in `argocd-cm.yaml`.
 
 ## ArgoCD
 
@@ -215,14 +215,14 @@ kubectl get applications -n argocd
 
 Secrets are managed outside ArgoCD to avoid selfHeal race conditions:
 
-- `bridge-config`, `wc2026bot-env`, `sre-analytics-env` — created imperatively via `kubectl create secret`
-- `iptv-env` — managed by External Secrets Operator (ESO), sourced from `secrets/iptv-secrets`
+- `bridge-config`, `wc2026bot-env`, `sre-analytics-env` - created imperatively via `kubectl create secret`
+- `iptv-env` - managed by External Secrets Operator (ESO), sourced from `secrets/iptv-secrets`
 
 All ArgoCD Application manifests use `ignoreDifferences` on Secret `/data` to prevent overwriting live secrets on sync.
 
-### selfHeal and secrets — lessons learned
+### selfHeal and secrets - lessons learned
 
-`syncPolicy.automated.selfHeal: true` makes ArgoCD continuously reconcile live state back to git. Since sensitive values aren't in git, ArgoCD's Helm render has no secret values — with `selfHeal: true` it will periodically overwrite live Secrets with empty values.
+`syncPolicy.automated.selfHeal: true` makes ArgoCD continuously reconcile live state back to git. Since sensitive values aren't in git, ArgoCD's Helm render has no secret values - with `selfHeal: true` it will periodically overwrite live Secrets with empty values.
 
 **Fix applied:** secrets are created imperatively outside ArgoCD. ArgoCD Applications use `ignoreDifferences` on Secret `/data`. ESO-managed secrets (`iptv-env`) are owned by the ExternalSecret resource, not ArgoCD directly.
 
@@ -273,7 +273,7 @@ All homelab services are exposed via Traefik with a wildcard TLS certificate for
 
 ### TLS setup
 
-A local CA (`certs/ca.crt`) signs a wildcard certificate for `*.homelab.local` (397 days — Apple's maximum for trusted TLS since 2020).
+A local CA (`certs/ca.crt`) signs a wildcard certificate for `*.homelab.local` (397 days - Apple's maximum for trusted TLS since 2020).
 
 To trust on macOS:
 1. Copy `certs/ca.crt` to your Mac
