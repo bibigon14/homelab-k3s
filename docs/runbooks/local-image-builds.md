@@ -33,12 +33,22 @@ this was the cause - no further action needed, just let the alerts clear.
 
 ## Mitigation
 
-- Expect a burst of SLO burn-rate alerts during/after any `docker build` +
-  `k3s ctr images import` on this node. This is currently accepted as a
-  known cost of building images locally (see [ADR-001](../adr/001-k3s.md)
-  on the single-node tradeoff).
-- If it becomes disruptive, consider `nice`/`ionice` on the build command,
-  or building on a separate machine and `k3s ctr images import`-ing the
-  saved tarball instead of building in place.
+Standard practice as of 2026-07-17: wrap every local build/import with
+`nice`/`ionice` so it competes less aggressively for CPU and disk I/O:
+
+```bash
+nice -n 19 ionice -c3 docker build -t <image>:latest .
+nice -n 19 ionice -c3 docker save <image>:latest | sudo ionice -c3 k3s ctr images import -
+```
+
+This is now baked into [river-bot's DEPLOY.md](../../charts/river-bot/DEPLOY.md).
+Apply the same pattern to any other bot's build/deploy steps.
+
+- Even with `nice`/`ionice`, a brief SLO burn-rate blip is still possible
+  under heavy load - this is a mitigation, not a guarantee. This remains a
+  known cost of building images locally on a single-node cluster (see
+  [ADR-001](../adr/001-k3s.md)).
+- For a fully build-free deploy, build on a separate machine and
+  `k3s ctr images import` the saved tarball instead of building in place.
 - Not worth suspending chaos-monkey for this - it's a self-resolving
   blip, not an actual failure.

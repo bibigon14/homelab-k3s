@@ -24,7 +24,10 @@ On the k3s node (same Pi, `homebridge`), in the river-bot repo directory:
 ```bash
 cd /home/bibigon88/river-bot
 # copy in Dockerfile and .dockerignore from this delivery first
-docker build -t river-bot:latest .
+# nice/ionice: local builds compete with Prometheus/Grafana/Loki/Tempo/
+# Traefik for CPU and disk I/O on this same node and can trip blackbox SLO
+# probes across unrelated services (see docs/runbooks/local-image-builds.md).
+nice -n 19 ionice -c3 docker build -t river-bot:latest .
 docker images | grep river-bot   # sanity check
 ```
 
@@ -33,7 +36,7 @@ docker images | grep river-bot   # sanity check
 can't see. With `pullPolicy: Never` you must import it explicitly:
 
 ```bash
-docker save river-bot:latest | sudo k3s ctr images import -
+nice -n 19 ionice -c3 docker save river-bot:latest | sudo ionice -c3 k3s ctr images import -
 sudo k3s crictl images | grep river-bot   # confirm it's visible to containerd
 ```
 
@@ -108,7 +111,7 @@ then restart the pod:
 
 ```bash
 cd /home/bibigon88/river-bot
-docker build -t river-bot:latest .
-docker save river-bot:latest | sudo k3s ctr images import -
+nice -n 19 ionice -c3 docker build -t river-bot:latest .
+nice -n 19 ionice -c3 docker save river-bot:latest | sudo ionice -c3 k3s ctr images import -
 kubectl -n apps rollout restart deployment river-bot
 ```
