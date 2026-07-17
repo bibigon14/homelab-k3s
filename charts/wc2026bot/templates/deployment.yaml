@@ -7,6 +7,13 @@ metadata:
     {{- include "wc2026bot.labels" . | nindent 4 }}
 spec:
   replicas: 1
+  # IMPORTANT: this bot uses Telegram long-polling (getUpdates). If two pods
+  # were ever running at once (as RollingUpdate briefly allows), Telegram
+  # would reject one of them with "Conflict: terminated by other getUpdates
+  # request" (seen as http_4xx spikes on every redeploy). Recreate guarantees
+  # the old pod is fully gone before the new one starts.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "wc2026bot.selectorLabels" . | nindent 6 }}
