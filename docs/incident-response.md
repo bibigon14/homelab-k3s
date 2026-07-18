@@ -67,3 +67,4 @@ Tone: blameless. The question is "what made this failure mode possible?", not "w
 ## Known gotchas
 
 - Several unrelated services down at once, self-resolving in a few minutes: check whether a `docker build` / `k3s ctr images import` was running. See docs/runbooks/local-image-builds.md.
+- Single `Telegram API getUpdates HTTP 409: Conflict` within a minute of a pod reschedule (Restart Count stays 0, new pod under same ReplicaSet hash) — expected crossover blip between old/new long-polling connections, self-resolves. Don't alert on one-off occurrences, only investigate if recurring.
