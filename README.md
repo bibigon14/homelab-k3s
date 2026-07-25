@@ -223,7 +223,7 @@ All ArgoCD Application manifests use `ignoreDifferences` on Secret `/data` to pr
 
 `syncPolicy.automated.selfHeal: true` makes ArgoCD continuously reconcile live state back to git. Since sensitive values aren't in git, ArgoCD's Helm render has no secret values - with `selfHeal: true` it will periodically overwrite live Secrets with empty values.
 
-**Fix applied:** secrets are created imperatively outside ArgoCD. ArgoCD Applications use `ignoreDifferences` on Secret `/data`. ESO-managed secrets (`iptv-env`) are owned by the ExternalSecret resource, not ArgoCD directly.
+**Fix applied:** all app secrets are now ESO-managed via `ExternalSecret` resources, owned and reconciled by the ExternalSecret controller rather than rendered directly by any chart. Since no chart renders a `Secret` object anymore, ArgoCD's selfHeal has nothing secret-shaped to overwrite — the original failure mode is structurally impossible now, not just guarded against.
 
 ### Get admin password
 
