@@ -215,8 +215,7 @@ kubectl get applications -n argocd
 
 Secrets are managed outside ArgoCD to avoid selfHeal race conditions:
 
-- `bridge-config`, `wc2026bot-env`, `sre-analytics-env` - created imperatively via `kubectl create secret`
-- `iptv-env` - managed by External Secrets Operator (ESO), sourced from `secrets/iptv-secrets`
+- All app secrets (`bridge-config`, `wc2026bot-env`, `sre-analytics-env`, `iptv-env`) are managed by External Secrets Operator (ESO), sourced from same-named Secrets in the `secrets` namespace. Charts render only the `ExternalSecret` CR (no values in git); ESO owns and reconciles the resulting Secret.
 
 All ArgoCD Application manifests use `ignoreDifferences` on Secret `/data` to prevent overwriting live secrets on sync.
 
