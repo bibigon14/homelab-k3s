@@ -332,6 +332,38 @@ git push
 > kubectl rollout restart daemonset/alloy -n monitoring
 > ```
 
+## Backup & Disaster Recovery
+
+[Velero](https://velero.io/) (`velero` namespace) backs up cluster resources and PVC data to Cloudflare R2 (bucket `homelab-velero-backups`), using the `node-agent` (Kopia) path for filesystem-level volume snapshots — `local-path` PVs aren't portable, so this is the only way to actually recover volume data, not just manifests.
+
+- **BackupStorageLocation:** `default` → R2, via `velero-plugin-for-aws` (R2 is S3-compatible)
+- **Schedule:** `daily-backup` — every day at 03:00, `apps` + `secrets` + `external-secrets` namespaces, 30-day TTL (`720h`)
+- **Not yet included:** `monitoring`, `argocd`, `kube-system` — those are reproducible from this repo + ArgoCD sync, so backing them up is lower priority than the namespaces holding actual state/secrets
+
+### Check status
+
+```bash
+kubectl get backupstoragelocation -n velero
+kubectl get schedule -n velero
+kubectl get backups -n velero
+```
+
+### Manual backup / restore test
+
+```bash
+velero backup create --from-schedule=daily-backup manual-test-1
+velero backup describe manual-test-1
+```
+
+Restore into the live cluster (or a fresh one pointed at the same R2 bucket):
+
+```bash
+velero restore create --from-backup <backup-name>
+kubectl get restores -n velero
+```
+
+> The `Schedule` manifest (`velero/daily-backup-schedule.yaml`) is applied via `kubectl ap
+
 ## Status
 
 ```bash

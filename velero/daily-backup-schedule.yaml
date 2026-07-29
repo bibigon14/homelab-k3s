@@ -1,0 +1,18 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily-backup
+  namespace: velero
+spec:
+  # Every day at 03:00 (cluster local time)
+  schedule: "0 3 * * *"
+  template:
+    includedNamespaces:
+      - apps
+      - secrets
+      - external-secrets
+    # Keep backups for 30 days, then Velero garbage-collects them
+    # (deletes both the Kubernetes Backup object and the data in R2).
+    ttl: 720h0m0s
+    # Snapshot PVC data via the Kopia path (node-agent), not just object manifests.
+    defaultVolumesToFsBackup: true
