@@ -12,6 +12,7 @@ anyone interested in the operational history of this platform.
 
 | Date | Title | Severity |
 |---|---|---|
+| 2026-07-29 | [Thanos Compact corruption recurs: four new R2 blocks fail checksum validation, one crash loop exhausts restart limit](./2026-07-29-thanos-compact-r2-block-corruption.md) | SEV-2 |
 | 2026-07-24 | [sre-analytics OTLP trace export silently broken by an untracked Secret overriding a corrected code default](./2026-07-24-postmortem-sre-analytics-otlp-drift.md) | SEV-3 |
 | 2026-07-18 | [Pi-hole loopback drop + Thanos compact crash loop (three root causes in one alert)](./2026-07-18-postmortem-pihole-loopback-drop-thanos-cascade.md) | SEV-3 |
 | 2026-07-11 | [Pi-hole SQLite ARP deadlock caused homelab-wide DNS outage](./2026-07-11-postmortem-pihole-sqlite-arp-deadlock.md) | SEV-2 |
