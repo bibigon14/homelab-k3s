@@ -9,9 +9,10 @@ spec:
   schedule: "{{ .Values.schedule }}"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
+      ttlSecondsAfterFinished: 86400
       backoffLimit: 0
       template:
         spec:

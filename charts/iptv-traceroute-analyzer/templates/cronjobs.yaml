@@ -13,6 +13,7 @@ spec:
   failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
+      ttlSecondsAfterFinished: 86400
       backoffLimit: {{ .Values.backoffLimit | default 2 }}
       template:
         spec:
@@ -46,6 +47,7 @@ spec:
   failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
+      ttlSecondsAfterFinished: 86400
       backoffLimit: {{ .Values.backoffLimit | default 2 }}
       template:
         spec:
@@ -79,6 +81,7 @@ spec:
   failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
+      ttlSecondsAfterFinished: 86400
       backoffLimit: {{ .Values.backoffLimit | default 2 }}
       template:
         spec:
