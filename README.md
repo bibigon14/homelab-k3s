@@ -29,6 +29,11 @@ graph TB
                 chaos["chaos-monkey"]
             end
 
+            subgraph bgd["blue-green-demo namespace"]
+                rollouts["Argo Rollouts"]
+                bgapp["demo-app (blue/green)"]
+            end
+
             subgraph mon["monitoring namespace"]
                 loki["Loki"]
                 alloy["Grafana Alloy (DaemonSet)"]
@@ -56,6 +61,8 @@ graph TB
     telegram["Telegram API"]
 
     argocd -->|deploys| apps
+    argocd -->|deploys| bgd
+    rollouts -->|manages| bgapp
     argocd -->|deploys| mon
     prometheus -->|scrapes| ksm
     prometheus -->|scrapes| cadvisor
@@ -89,6 +96,8 @@ graph TB
 | `argocd` | GitOps controller | ArgoCD + argocd.homelab.local IngressRoute |
 | `external-secrets` | Secret management | External Secrets Operator |
 | `secrets` | ESO secret source | iptv-secrets (source for ESO ClusterSecretStore) |
+| `blue-green-demo` | Blue-green deployment demo | demo-app Rollout (Argo Rollouts), active + preview Services |
+| `argo-rollouts` | Rollout controller | Argo Rollouts controller |
 | `kube-system` | k3s system | Traefik, CoreDNS, metrics-server |
 
 ## Structure
@@ -168,6 +177,14 @@ CronJob running daily at 8am Pacific - collects Cloudflare analytics (zone stats
 #### chaos-monkey
 
 CronJob running hourly - picks a random running pod outside system namespaces and deletes it. Tests workload resilience. Has its own `ServiceAccount` + `ClusterRole` with pod delete permissions only.
+
+### blue-green-demo namespace
+
+#### demo-app
+
+[Blue-green deployment demo](https://github.com/bibigon14/k8s-blue-green-deploy) - Go HTTP service deployed via [Argo Rollouts](https://argoproj.github.io/argo-rollouts/) blue-green strategy. Two Services (`demo-app-active` for production traffic, `demo-app-preview` for staging) swap selectors on promotion. Pre-promotion `AnalysisTemplate` runs 3 HTTP smoke tests against the preview before auto-promoting.
+
+Prometheus metrics exposed via NodePort `30130` (`http_requests_total`, `http_request_duration_seconds`, `http_requests_in_flight`, `app_ready`, `app_info`). Structured JSON logs via `slog`. Multi-arch image (amd64 + arm64) built by GitHub Actions CI and pushed to GHCR.
 
 ### monitoring namespace
 
@@ -269,6 +286,7 @@ All homelab services are exposed via Traefik with a wildcard TLS certificate for
 | `30809` | kube-state-metrics | monitoring | Prometheus scrape target |
 | `30810` | argocd-metrics | argocd | Prometheus scrape target |
 | `30811` | loki | monitoring | Grafana data source |
+| `30130` | demo-app-metrics | blue-green-demo | Prometheus scrape target |
 
 ### TLS setup
 
