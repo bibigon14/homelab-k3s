@@ -194,9 +194,9 @@ Kubernetes object-state exporter - Prometheus metrics for Pod/Deployment/Job/Cro
 
 #### loki + alloy
 
-Centralized log aggregation: [Loki](https://grafana.com/oss/loki/) (single-binary mode, 10Gi PVC, 7-day retention, filesystem storage backend) paired with [Grafana Alloy](https://grafana.com/docs/alloy/) as the log shipper, deployed as a DaemonSet.
+Centralized log aggregation: [Loki](https://grafana.com/oss/loki/) (single-binary mode, 10Gi PVC, 30-day retention, filesystem storage backend) paired with [Grafana Alloy](https://grafana.com/docs/alloy/) as the log shipper, deployed as a DaemonSet.
 
-Alloy discovers pods via the Kubernetes API, collects logs from `apps`, `monitoring`, and `homelab` namespaces, and ships to Loki. Requires `runAsUser: 0` since `/var/log/pods` is root-owned. Exposed via `NodePort 30811` for Grafana data source.
+Alloy discovers pods via the Kubernetes API, collects logs from `apps` and `monitoring` namespaces, and ships to Loki. Requires `runAsUser: 0` since `/var/log/pods` is root-owned. Exposed via `NodePort 30811` for Grafana data source.
 
 #### tempo
 
@@ -380,7 +380,7 @@ velero restore create --from-backup <backup-name>
 kubectl get restores -n velero
 ```
 
-> The `Schedule` manifest (`velero/daily-backup-schedule.yaml`) is applied via `kubectl ap
+> The `Schedule` manifest (`velero/daily-backup-schedule.yaml`) is applied via `kubectl apply -f velero/daily-backup-schedule.yaml` - kept outside ArgoCD so the schedule survives even if the argocd namespace is wiped.
 
 ## Status
 
