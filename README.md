@@ -91,7 +91,7 @@ graph TB
 
 | Namespace | Purpose | Workloads |
 |-----------|---------|-----------|
-| `apps` | Application workloads | bridge, redis, wc2026bot, iptv-bot, iptv-*, sre-analytics, chaos-monkey |
+| `apps` | Application workloads | bridge, redis, wc2026bot, river-bot, iptv-bot, iptv-*, sre-analytics, chaos-monkey |
 | `monitoring` | Observability stack | loki, alloy, kube-state-metrics, tempo-*, external-services + IngressRoutes |
 | `argocd` | GitOps controller | ArgoCD + argocd.homelab.local IngressRoute |
 | `external-secrets` | Secret management | External Secrets Operator |
@@ -116,19 +116,23 @@ charts/
   alloy/                              # Helm chart: Grafana Alloy DaemonSet + RBAC (log shipper)
   sre-analytics/                      # Helm chart: CronJob (Cloudflare + Telegram analytics)
   chaos-monkey/                       # Helm chart: CronJob + RBAC (random pod killer)
+  river-bot/                          # Helm chart: Deployment + Service + ExternalSecret (metrics NodePort 30121)
   external-services/                  # Helm chart: Services + EndpointSlices + IngressRoutes for host services
 argocd/
   argocd-cm.yaml                      # ArgoCD ConfigMap (resource exclusions, customizations)
+  argocd-notifications-cm.yaml        # ArgoCD Notifications config (Telegram routing)
   bridge-app.yaml                     # ArgoCD Application → apps
   redis-app.yaml                      # ArgoCD Application → apps
   wc2026bot-app.yaml                  # ArgoCD Application → apps
   iptv-app.yaml                       # ArgoCD Application → apps
   sre-analytics-app.yaml              # ArgoCD Application → apps
   chaos-monkey-app.yaml               # ArgoCD Application → apps
+  river-bot-app.yaml                  # ArgoCD Application → apps
   kube-state-metrics-app.yaml         # ArgoCD Application → monitoring
   loki-app.yaml                       # ArgoCD Application → monitoring
   alloy-app.yaml                      # ArgoCD Application → monitoring
   tempo-app.yaml                      # ArgoCD Application → monitoring (upstream grafana/tempo-distributed)
+  tempo-nodeport-app.yaml             # ArgoCD Application → monitoring (NodePort 30845 for host Grafana)
   external-services-app.yaml          # ArgoCD Application → monitoring
   argocd-ingress-app.yaml             # ArgoCD Application → argocd
 ingress/
@@ -137,6 +141,15 @@ certs/
   ca.crt                              # Homelab CA certificate (add to System Keychain for trusted TLS)
   homelab.local.crt                   # Wildcard cert for *.homelab.local (397 days, Apple-compliant)
   renew-cert.sh                       # Script to renew TLS cert and update cluster secrets
+docs/
+  adr/                                # Architecture Decision Records
+  postmortems/                        # SEV-2+ blameless post-mortems
+  runbooks/                           # Operational runbooks
+  incident-response.md                # Incident response playbook
+  slo-policy.md                       # SLO/SLI targets and error budgets
+  roadmap.md                          # Phased hardening/scaling plan
+velero/
+  daily-backup-schedule.yaml          # Velero Schedule CRD (applied via kubectl, outside ArgoCD)
 ```
 
 ## Apps
@@ -156,6 +169,10 @@ Shared cache and state store used by `wc2026bot` and `iptv-notify`/`iptv-auto-sw
 #### bridge (alertmanager-telegram-bridge)
 
 [Prometheus Alertmanager → Telegram forwarder](https://github.com/bibigon14/alertmanager-telegram-bridge). Exposed via `NodePort 30119` so the host's systemd-managed Alertmanager can reach it at `http://localhost:30119/webhook`. Config (token, chat ID, routing rules, quiet hours) mounted from a Secret as `/config/config.yaml`.
+
+#### river-bot
+
+Telegram bot for USGS river gauge data - polls the [USGS waterservices API](https://waterservices.usgs.gov/), sends alerts on threshold crossings. Python 3.12, `python-telegram-bot 21.10`, `bootstrap_retries=-1` with exponential backoff for transient `httpx.ReadError` on long-polling. Deployed with `Recreate` strategy to avoid `getUpdates` conflicts on redeploy. Metrics on `NodePort 30121` (process memory, request counters). Source: [river-bot](https://github.com/bibigon14/river-bot). SLO alerts distinguish internal (99.9% target) from external USGS dependency.
 
 #### iptv (iptv-traceroute-analyzer)
 
@@ -286,6 +303,8 @@ All homelab services are exposed via Traefik with a wildcard TLS certificate for
 | `30809` | kube-state-metrics | monitoring | Prometheus scrape target |
 | `30810` | argocd-metrics | argocd | Prometheus scrape target |
 | `30811` | loki | monitoring | Grafana data source |
+| `30121` | river-bot | apps | Prometheus scrape target |
+| `30845` | tempo | monitoring | Grafana Tempo data source |
 | `30130` | demo-app-metrics | blue-green-demo | Prometheus scrape target |
 
 ### TLS setup
@@ -381,6 +400,17 @@ kubectl get restores -n velero
 ```
 
 > The `Schedule` manifest (`velero/daily-backup-schedule.yaml`) is applied via `kubectl apply -f velero/daily-backup-schedule.yaml` - kept outside ArgoCD so the schedule survives even if the argocd namespace is wiped.
+
+## Documentation
+
+Beyond this README, the repo carries the operational documentation of a real running system:
+
+- [`docs/adr/`](docs/adr/) - Architecture Decision Records for non-trivial choices
+- [`docs/postmortems/`](docs/postmortems/) - blameless post-mortems for SEV-2+ incidents (e.g. Pi-hole loopback → Thanos cascade, sre-analytics OTLP secret drift, iptv-auto-switch false-positive alerts)
+- [`docs/runbooks/`](docs/runbooks/) - operational runbooks per app / component
+- [`docs/incident-response.md`](docs/incident-response.md) - incident response playbook
+- [`docs/slo-policy.md`](docs/slo-policy.md) - SLO/SLI targets and error-budget policy
+- [`docs/roadmap.md`](docs/roadmap.md) - phased hardening and scaling roadmap
 
 ## Status
 
