@@ -8,6 +8,10 @@ Started on Docker Compose and systemd (see [wc2026-telegram-bot](https://github.
 
 This repo holds infrastructure manifests and Helm charts separately from application code - closer to how most teams split app repos from infra/GitOps repos in practice.
 
+**Companion repo:** [homelab-observability](https://github.com/bibigon14/homelab-observability) carries the Prometheus exporters, alerting rules, Grafana dashboards, and blameless postmortems for this cluster.
+
+**Live dashboards:** rotating kiosk view of the actual running stack at [grafana.dstepanov.dev](https://grafana.dstepanov.dev/playlists/play/adhxnsb?kiosk) - no login required, read-only.
+
 ## Architecture
 
 ```mermaid
