@@ -36,6 +36,14 @@ env:
 
 backoffLimit: 2
 
+# How many finished Job objects each CronJob keeps around. The default of 1
+# makes post-mortem on a transient failure impossible - once the next Job
+# runs, the previous one's logs are gone. 48 successful at */30 keeps 24h
+# of history for the writer.
+jobsHistory:
+  successful: 48
+  failed: 10
+
 bot:
   image:
     repository: iptv-traceroute-analyzer

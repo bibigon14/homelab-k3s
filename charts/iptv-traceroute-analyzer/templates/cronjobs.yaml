@@ -9,8 +9,8 @@ spec:
   schedule: "{{ .Values.schedules.influxWriter }}"
   timeZone: "{{ .Values.timezone }}"
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 1
-  failedJobsHistoryLimit: 1
+  successfulJobsHistoryLimit: {{ .Values.jobsHistory.successful | default 1 }}
+  failedJobsHistoryLimit: {{ .Values.jobsHistory.failed | default 1 }}
   jobTemplate:
     spec:
       ttlSecondsAfterFinished: 86400
@@ -43,8 +43,8 @@ spec:
   schedule: "{{ .Values.schedules.notify }}"
   timeZone: "{{ .Values.timezone }}"
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 1
-  failedJobsHistoryLimit: 1
+  successfulJobsHistoryLimit: {{ .Values.jobsHistory.successful | default 1 }}
+  failedJobsHistoryLimit: {{ .Values.jobsHistory.failed | default 1 }}
   jobTemplate:
     spec:
       ttlSecondsAfterFinished: 86400
@@ -77,8 +77,8 @@ spec:
   schedule: "{{ .Values.schedules.autoSwitch }}"
   timeZone: "{{ .Values.timezone }}"
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 1
-  failedJobsHistoryLimit: 1
+  successfulJobsHistoryLimit: {{ .Values.jobsHistory.successful | default 1 }}
+  failedJobsHistoryLimit: {{ .Values.jobsHistory.failed | default 1 }}
   jobTemplate:
     spec:
       ttlSecondsAfterFinished: 86400
