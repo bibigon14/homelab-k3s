@@ -85,6 +85,33 @@ graph TB
 ```
 
 
+## GitOps control plane
+
+ArgoCD runs the cluster. Every workload under `apps/` and `monitoring/`
+is an ArgoCD `Application` manifest in `argocd/` pointing at a Helm chart
+in `charts/` or an upstream chart repo - a `git push` to `main` is the
+only way anything gets deployed, and `kubectl apply` is reserved for
+Velero and the ArgoCD bootstrap itself.
+
+![ArgoCD UI showing 15 applications all Healthy and Synced on the homelab cluster: alloy, argocd-ingress, bridge, chaos-monkey, chaos-scheduler-operator, external-services and more](docs/screenshots/argocd-apps.png)
+
+- **Auto-sync on push**: every `Application` has `syncPolicy.automated:
+  {prune: true, selfHeal: true}` so a drift from the live cluster is
+  reconciled on the next ArgoCD poll (3 min default); a merged PR lands
+  in prod without a manual sync step
+- **App-of-apps separation**: `argocd/` holds `Application` manifests
+  only; `charts/` holds the Helm charts those Applications point at;
+  one PR to add a workload touches both folders, which also makes it
+  obvious in review what is being added where
+- **Notifications → Telegram**: `argocd-notifications-cm.yaml` wires
+  the Argo CD Notifications controller to the same Telegram bridge
+  Alertmanager uses, so `app-sync-failed` and `app-health-degraded`
+  land in the same chat as cluster alerts
+- **No ApplicationSet yet**: deliberately kept as flat Applications for
+  v1 - the cluster has 15 apps and the generator would obscure the
+  per-app config rather than help. The migration path is noted in
+  `docs/roadmap.md`
+
 ## Cluster
 
 - Single-node k3s on a Raspberry Pi 5 8GB
