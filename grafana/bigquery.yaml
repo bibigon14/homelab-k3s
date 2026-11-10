@@ -1,0 +1,29 @@
+# Grafana datasource provisioning for the GCP BigQuery billing export.
+# Deployed to /etc/grafana/provisioning/datasources/bigquery.yaml on the host.
+#
+# The private key file is NOT in git. Deliver to:
+#   /etc/grafana/sa/grafana-bq-reader.json  (grafana:grafana, 0600)
+# with:
+#   gcloud iam service-accounts keys create grafana-bq-reader.json \
+#     --iam-account=grafana-bq-reader@dstepanov-gke-platform.iam.gserviceaccount.com
+#   scp grafana-bq-reader.json pi:/tmp/sa.json
+#   ssh pi 'sudo mv /tmp/sa.json /etc/grafana/sa/grafana-bq-reader.json && \
+#           sudo chown grafana:grafana /etc/grafana/sa/grafana-bq-reader.json && \
+#           sudo chmod 600 /etc/grafana/sa/grafana-bq-reader.json'
+
+apiVersion: 1
+
+datasources:
+  - name: BigQuery (billing)
+    type: grafana-bigquery-datasource
+    uid: bq-billing-export
+    access: proxy
+    jsonData:
+      authenticationType: jwt
+      defaultProject: dstepanov-gke-platform
+      flatRateProject: dstepanov-gke-platform
+      processingLocation: US
+      clientEmail: grafana-bq-reader@dstepanov-gke-platform.iam.gserviceaccount.com
+      tokenUri: https://oauth2.googleapis.com/token
+    secureJsonData:
+      privateKeyPath: /etc/grafana/sa/grafana-bq-reader.json
