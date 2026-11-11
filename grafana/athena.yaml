@@ -1,0 +1,41 @@
+# Grafana Athena datasource for multi-cloud-finops v0.2.
+#
+# Access key / secret key live in Grafana's secret store (added
+# through the UI after this file is in place), so they are NOT in
+# this YAML. The same lesson from the BigQuery pass applies: the
+# Athena plugin does not read access keys from a file path, only
+# from the secureJsonData map, and a provisioning file that carries
+# secrets would leak into every git log and backup of /etc/grafana.
+#
+# Terraform owns the IAM user, workgroup, database and S3 buckets:
+#   terraform output -raw grafana_aws_access_key_id
+#   terraform output -raw grafana_aws_secret_key
+#
+# Delete + Admin trick (same path the BigQuery datasource ended up on)
+# if provisioning gets stuck or the plugin refuses to pick up new
+# credentials:
+#   sudo sqlite3 /var/lib/grafana/grafana.db \
+#     "DELETE FROM data_source WHERE uid='aws-athena-cur';"
+#   sudo systemctl restart grafana-server
+# Then re-add through the UI with the credentials above.
+
+apiVersion: 1
+datasources:
+  - name: Athena (AWS CUR 2.0)
+    type: grafana-athena-datasource
+    uid: aws-athena-cur
+    access: proxy
+    jsonData:
+      authType: keys
+      defaultRegion: us-east-1
+      catalog: AwsDataCatalog
+      database: multi_cloud_finops
+      workgroup: multi-cloud-finops
+      # Output location must match what the Athena workgroup already
+      # enforces; stated here so the Grafana query editor pre-fills
+      # the same path and never prompts for it.
+      outputLocation: s3://dstepanov-aws-cur-export-athena-results/results/
+    # secureJsonData entries are added through the UI after the
+    # terraform apply, never committed here. The UI flow writes them
+    # into grafana.db encrypted at rest.
+    editable: false

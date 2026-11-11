@@ -1,5 +1,7 @@
 {
-  "annotations": {"list": []},
+  "annotations": {
+    "list": []
+  },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -8,129 +10,537 @@
   "liveNow": false,
   "panels": [
     {
+      "id": 100,
+      "type": "row",
+      "title": "GCP (BigQuery billing export)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
       "id": 1,
       "title": "Month-to-date spend",
       "type": "stat",
-      "gridPos": {"h": 5, "w": 8, "x": 0, "y": 0},
-      "datasource": {"type": "grafana-bigquery-datasource", "uid": "bq-billing-export"},
-      "targets": [{
-        "refId": "A",
-        "rawSql": "SELECT ROUND(SUM(cost), 2) AS cost_usd FROM `dstepanov-gke-platform.billing_export.gcp_billing_export_v1_0108CD_97A262_B94181` WHERE _PARTITIONTIME >= TIMESTAMP(DATE_TRUNC(CURRENT_DATE(), MONTH))",
-        "format": "table",
-        "location": "US"
-      }],
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      },
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bq-billing-export"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT ROUND(SUM(cost), 2) AS cost_usd FROM `dstepanov-gke-platform.billing_export.gcp_billing_export_v1_0108CD_97A262_B94181` WHERE _PARTITIONTIME >= TIMESTAMP(DATE_TRUNC(CURRENT_DATE(), MONTH))",
+          "format": "table",
+          "location": "US"
+        }
+      ],
       "fieldConfig": {
         "defaults": {
           "unit": "currencyUSD",
           "decimals": 2,
-          "color": {"mode": "thresholds"},
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "green", "value": null},
-            {"color": "yellow", "value": 5},
-            {"color": "red", "value": 10}
-          ]}
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
         }
       },
-      "options": {"colorMode": "background", "graphMode": "none", "textMode": "value", "justifyMode": "auto"}
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
     },
     {
       "id": 2,
       "title": "Burn rate (1.0 = on plan)",
       "type": "stat",
-      "gridPos": {"h": 5, "w": 8, "x": 8, "y": 0},
-      "datasource": {"type": "grafana-bigquery-datasource", "uid": "bq-billing-export"},
-      "targets": [{
-        "refId": "A",
-        "rawSql": "WITH mtd AS (SELECT SUM(cost) AS spend FROM `dstepanov-gke-platform.billing_export.gcp_billing_export_v1_0108CD_97A262_B94181` WHERE _PARTITIONTIME >= TIMESTAMP(DATE_TRUNC(CURRENT_DATE(), MONTH))), cal AS (SELECT EXTRACT(DAY FROM CURRENT_DATE()) AS d, EXTRACT(DAY FROM LAST_DAY(CURRENT_DATE(), MONTH)) AS dm) SELECT ROUND(SAFE_DIVIDE(SAFE_DIVIDE(mtd.spend, 10.0), SAFE_DIVIDE(cal.d, cal.dm)), 2) AS burn_rate FROM mtd, cal",
-        "format": "table",
-        "location": "US"
-      }],
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 1
+      },
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bq-billing-export"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "WITH mtd AS (SELECT SUM(cost) AS spend FROM `dstepanov-gke-platform.billing_export.gcp_billing_export_v1_0108CD_97A262_B94181` WHERE _PARTITIONTIME >= TIMESTAMP(DATE_TRUNC(CURRENT_DATE(), MONTH))), cal AS (SELECT EXTRACT(DAY FROM CURRENT_DATE()) AS d, EXTRACT(DAY FROM LAST_DAY(CURRENT_DATE(), MONTH)) AS dm) SELECT ROUND(SAFE_DIVIDE(SAFE_DIVIDE(mtd.spend, 10.0), SAFE_DIVIDE(cal.d, cal.dm)), 2) AS burn_rate FROM mtd, cal",
+          "format": "table",
+          "location": "US"
+        }
+      ],
       "fieldConfig": {
         "defaults": {
           "unit": "none",
           "decimals": 2,
-          "color": {"mode": "thresholds"},
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "green", "value": null},
-            {"color": "yellow", "value": 1.0},
-            {"color": "red", "value": 1.5}
-          ]}
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1.0
+              },
+              {
+                "color": "red",
+                "value": 1.5
+              }
+            ]
+          }
         }
       },
-      "options": {"colorMode": "background", "graphMode": "none", "textMode": "value", "justifyMode": "auto"}
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
     },
     {
       "id": 3,
       "title": "Projected month-end spend",
       "type": "stat",
-      "gridPos": {"h": 5, "w": 8, "x": 16, "y": 0},
-      "datasource": {"type": "grafana-bigquery-datasource", "uid": "bq-billing-export"},
-      "targets": [{
-        "refId": "A",
-        "rawSql": "WITH mtd AS (SELECT SUM(cost) AS spend FROM `dstepanov-gke-platform.billing_export.gcp_billing_export_v1_0108CD_97A262_B94181` WHERE _PARTITIONTIME >= TIMESTAMP(DATE_TRUNC(CURRENT_DATE(), MONTH))), cal AS (SELECT EXTRACT(DAY FROM CURRENT_DATE()) AS d, EXTRACT(DAY FROM LAST_DAY(CURRENT_DATE(), MONTH)) AS dm) SELECT ROUND(SAFE_DIVIDE(mtd.spend, cal.d) * cal.dm, 2) AS projected FROM mtd, cal",
-        "format": "table",
-        "location": "US"
-      }],
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 1
+      },
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bq-billing-export"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "WITH mtd AS (SELECT SUM(cost) AS spend FROM `dstepanov-gke-platform.billing_export.gcp_billing_export_v1_0108CD_97A262_B94181` WHERE _PARTITIONTIME >= TIMESTAMP(DATE_TRUNC(CURRENT_DATE(), MONTH))), cal AS (SELECT EXTRACT(DAY FROM CURRENT_DATE()) AS d, EXTRACT(DAY FROM LAST_DAY(CURRENT_DATE(), MONTH)) AS dm) SELECT ROUND(SAFE_DIVIDE(mtd.spend, cal.d) * cal.dm, 2) AS projected FROM mtd, cal",
+          "format": "table",
+          "location": "US"
+        }
+      ],
       "fieldConfig": {
         "defaults": {
           "unit": "currencyUSD",
           "decimals": 2,
-          "color": {"mode": "thresholds"},
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "green", "value": null},
-            {"color": "yellow", "value": 8},
-            {"color": "red", "value": 10}
-          ]}
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 8
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
         }
       },
-      "options": {"colorMode": "background", "graphMode": "none", "textMode": "value", "justifyMode": "auto"}
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
     },
     {
       "id": 4,
       "title": "MTD cost by service",
       "type": "barchart",
-      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 5},
-      "datasource": {"type": "grafana-bigquery-datasource", "uid": "bq-billing-export"},
-      "targets": [{
-        "refId": "A",
-        "rawSql": "SELECT service.description AS service, ROUND(SUM(cost), 4) AS cost_usd FROM `dstepanov-gke-platform.billing_export.gcp_billing_export_v1_0108CD_97A262_B94181` WHERE _PARTITIONTIME >= TIMESTAMP(DATE_TRUNC(CURRENT_DATE(), MONTH)) GROUP BY service ORDER BY cost_usd DESC LIMIT 20",
-        "format": "table",
-        "location": "US"
-      }],
-      "fieldConfig": {"defaults": {"unit": "currencyUSD", "decimals": 4}},
-      "options": {"orientation": "horizontal", "xField": "service", "legend": {"showLegend": false}}
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bq-billing-export"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT service.description AS service, ROUND(SUM(cost), 4) AS cost_usd FROM `dstepanov-gke-platform.billing_export.gcp_billing_export_v1_0108CD_97A262_B94181` WHERE _PARTITIONTIME >= TIMESTAMP(DATE_TRUNC(CURRENT_DATE(), MONTH)) GROUP BY service ORDER BY cost_usd DESC LIMIT 20",
+          "format": "table",
+          "location": "US"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "service",
+        "legend": {
+          "showLegend": false
+        }
+      }
     },
     {
       "id": 5,
       "title": "Daily spend trend (last 30 days)",
       "type": "timeseries",
-      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 5},
-      "datasource": {"type": "grafana-bigquery-datasource", "uid": "bq-billing-export"},
-      "targets": [{
-        "refId": "A",
-        "rawSql": "SELECT DATE(usage_start_time) AS time, service.description AS metric, SUM(cost) AS value FROM `dstepanov-gke-platform.billing_export.gcp_billing_export_v1_0108CD_97A262_B94181` WHERE _PARTITIONTIME >= TIMESTAMP(DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)) GROUP BY time, metric ORDER BY time",
-        "format": "time_series",
-        "location": "US"
-      }],
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bq-billing-export"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT TIMESTAMP_TRUNC(usage_start_time, DAY) AS time, service.description AS metric, SUM(cost) AS value FROM `dstepanov-gke-platform.billing_export.gcp_billing_export_v1_0108CD_97A262_B94181` WHERE _PARTITIONTIME >= TIMESTAMP(DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)) GROUP BY time, metric ORDER BY time",
+          "format": "table",
+          "location": "US"
+        }
+      ],
       "fieldConfig": {
         "defaults": {
           "unit": "currencyUSD",
-          "custom": {"drawStyle": "bars", "lineWidth": 1, "fillOpacity": 70, "stacking": {"mode": "normal", "group": "A"}}
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 70,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
         }
       },
-      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 101,
+      "type": "row",
+      "title": "AWS (CUR 2.0)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "panels": []
+    },
+    {
+      "id": 6,
+      "title": "Month-to-date spend (AWS)",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 17
+      },
+      "datasource": {
+        "type": "grafana-athena-datasource",
+        "uid": "aws-athena-cur"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSQL": "SELECT ROUND(COALESCE(SUM(line_item_unblended_cost), 0.0), 2) AS cost_usd FROM multi_cloud_finops.multi_cloud_finops_cur2 WHERE billing_period = date_format(current_date, '%Y-%m')   AND line_item_line_item_type IN ('Usage', 'DiscountedUsage', 'SavingsPlanCoveredUsage', 'SavingsPlanRecurringFee', 'Fee')",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 7,
+      "title": "Burn rate (AWS, 1.0 = on plan)",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 17
+      },
+      "datasource": {
+        "type": "grafana-athena-datasource",
+        "uid": "aws-athena-cur"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSQL": "WITH mtd AS (SELECT COALESCE(SUM(line_item_unblended_cost), 0.0) AS spend FROM multi_cloud_finops.multi_cloud_finops_cur2 WHERE billing_period = date_format(current_date, '%Y-%m')   AND line_item_line_item_type IN ('Usage', 'DiscountedUsage', 'SavingsPlanCoveredUsage', 'SavingsPlanRecurringFee', 'Fee')), cal AS (SELECT day_of_month(current_date) AS d,        day_of_month(last_day_of_month(current_date)) AS dm) SELECT ROUND(  (mtd.spend / NULLIF(10.0, 0)) /   NULLIF(CAST(cal.d AS DOUBLE) / cal.dm, 0), 2) AS burn_rate FROM mtd, cal",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1.0
+              },
+              {
+                "color": "red",
+                "value": 1.5
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 8,
+      "title": "Projected month-end (AWS)",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 17
+      },
+      "datasource": {
+        "type": "grafana-athena-datasource",
+        "uid": "aws-athena-cur"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSQL": "WITH mtd AS (SELECT COALESCE(SUM(line_item_unblended_cost), 0.0) AS spend FROM multi_cloud_finops.multi_cloud_finops_cur2 WHERE billing_period = date_format(current_date, '%Y-%m')   AND line_item_line_item_type IN ('Usage', 'DiscountedUsage', 'SavingsPlanCoveredUsage', 'SavingsPlanRecurringFee', 'Fee')), cal AS (SELECT day_of_month(current_date) AS d,        day_of_month(last_day_of_month(current_date)) AS dm) SELECT ROUND((mtd.spend / NULLIF(cal.d, 0)) * cal.dm, 2) AS projected FROM mtd, cal",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 8
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 9,
+      "title": "MTD cost by service (AWS)",
+      "type": "barchart",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "datasource": {
+        "type": "grafana-athena-datasource",
+        "uid": "aws-athena-cur"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSQL": "SELECT product_servicename AS service,        ROUND(SUM(line_item_unblended_cost), 4) AS cost_usd FROM multi_cloud_finops.multi_cloud_finops_cur2 WHERE billing_period = date_format(current_date, '%Y-%m')   AND line_item_line_item_type IN ('Usage', 'DiscountedUsage', 'SavingsPlanCoveredUsage', 'SavingsPlanRecurringFee', 'Fee') GROUP BY product_servicename ORDER BY cost_usd DESC LIMIT 20",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "service",
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Daily spend trend (AWS, last 30 days)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "datasource": {
+        "type": "grafana-athena-datasource",
+        "uid": "aws-athena-cur"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSQL": "SELECT date_trunc('day', line_item_usage_start_date) AS time,        product_servicename AS metric,        SUM(line_item_unblended_cost) AS value FROM multi_cloud_finops.multi_cloud_finops_cur2 WHERE billing_period IN (    date_format(current_date, '%Y-%m'),    date_format(current_date - interval '1' month, '%Y-%m')  )   AND line_item_usage_start_date >= current_date - interval '30' day   AND line_item_line_item_type IN ('Usage', 'DiscountedUsage', 'SavingsPlanCoveredUsage', 'SavingsPlanRecurringFee', 'Fee') GROUP BY 1, 2 ORDER BY 1",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 70,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
     }
   ],
   "refresh": "5m",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["finops", "gcp", "billing", "burn-rate"],
-  "templating": {"list": []},
-  "time": {"from": "now-30d", "to": "now"},
+  "tags": [
+    "aws",
+    "billing",
+    "burn-rate",
+    "finops",
+    "gcp",
+    "multi-cloud"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
-  "title": "GCP cost - MTD + burn rate",
+  "title": "Multi-cloud cost - MTD + burn rate",
   "uid": "mcf-gcp-mtd",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
