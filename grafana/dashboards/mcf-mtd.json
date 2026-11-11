@@ -517,13 +517,327 @@
           "placement": "bottom"
         }
       }
+    },
+    {
+      "id": 102,
+      "type": "row",
+      "title": "Azure (Cost Management)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "title": "Month-to-date spend (Azure)",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "azure-cost-management"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "https://management.azure.com/subscriptions/c395c797-0fbf-40e6-b1f8-b9a1eee8d838/providers/Microsoft.CostManagement/query?api-version=2024-08-01",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"type\": \"ActualCost\", \"timeframe\": \"MonthToDate\", \"dataset\": {\"granularity\": \"None\", \"aggregation\": {\"totalCost\": {\"name\": \"Cost\", \"function\": \"Sum\"}}}}",
+            "body_type": "raw",
+            "body_content_type": "application/json"
+          },
+          "parser": "backend",
+          "root_selector": "properties.rows",
+          "columns": [
+            {
+              "selector": "0",
+              "text": "cost_usd",
+              "type": "number"
+            },
+            {
+              "selector": "1",
+              "text": "currency",
+              "type": "string"
+            }
+          ],
+          "filters": [],
+          "computed_columns": [],
+          "global_query_id": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "currency"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^cost_usd$/",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "MTD cost by service (Azure)",
+      "type": "barchart",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 39
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "azure-cost-management"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "https://management.azure.com/subscriptions/c395c797-0fbf-40e6-b1f8-b9a1eee8d838/providers/Microsoft.CostManagement/query?api-version=2024-08-01",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"type\": \"ActualCost\", \"timeframe\": \"MonthToDate\", \"dataset\": {\"granularity\": \"None\", \"aggregation\": {\"totalCost\": {\"name\": \"Cost\", \"function\": \"Sum\"}}, \"grouping\": [{\"type\": \"Dimension\", \"name\": \"ServiceName\"}]}}",
+            "body_type": "raw",
+            "body_content_type": "application/json"
+          },
+          "parser": "backend",
+          "root_selector": "properties.rows",
+          "columns": [
+            {
+              "selector": "0",
+              "text": "cost_usd",
+              "type": "number"
+            },
+            {
+              "selector": "1",
+              "text": "service",
+              "type": "string"
+            },
+            {
+              "selector": "2",
+              "text": "currency",
+              "type": "string"
+            }
+          ],
+          "filters": [],
+          "computed_columns": [],
+          "global_query_id": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "currency"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "service",
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Daily spend trend (Azure, billing month)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 39
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "azure-cost-management"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "https://management.azure.com/subscriptions/c395c797-0fbf-40e6-b1f8-b9a1eee8d838/providers/Microsoft.CostManagement/query?api-version=2024-08-01",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"type\": \"ActualCost\", \"timeframe\": \"MonthToDate\", \"dataset\": {\"granularity\": \"Daily\", \"aggregation\": {\"totalCost\": {\"name\": \"Cost\", \"function\": \"Sum\"}}}}",
+            "body_type": "raw",
+            "body_content_type": "application/json"
+          },
+          "parser": "backend",
+          "root_selector": "properties.rows",
+          "columns": [
+            {
+              "selector": "0",
+              "text": "value",
+              "type": "number"
+            },
+            {
+              "selector": "1",
+              "text": "day_int",
+              "type": "number"
+            },
+            {
+              "selector": "2",
+              "text": "currency",
+              "type": "string"
+            }
+          ],
+          "filters": [],
+          "computed_columns": [],
+          "global_query_id": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 70,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "currency"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "transformations": [
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "day_int",
+                "destinationType": "string"
+              }
+            ]
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "day_int",
+                "destinationType": "time",
+                "dateFormat": "YYYYMMDD"
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "day_int": "time"
+            }
+          }
+        }
+      ]
     }
   ],
-  "refresh": "5m",
+  "refresh": "1h",
   "schemaVersion": 38,
   "style": "dark",
   "tags": [
     "aws",
+    "azure",
     "billing",
     "burn-rate",
     "finops",
@@ -541,6 +855,6 @@
   "timezone": "browser",
   "title": "Multi-cloud cost - MTD + burn rate",
   "uid": "mcf-gcp-mtd",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }
