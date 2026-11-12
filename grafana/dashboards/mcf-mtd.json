@@ -629,7 +629,9 @@
           "fields": "/^cost_usd$/",
           "values": false
         }
-      }
+      },
+      "cacheTimeout": "600",
+      "interval": "10m"
     },
     {
       "id": 12,
@@ -708,7 +710,9 @@
         "legend": {
           "showLegend": false
         }
-      }
+      },
+      "cacheTimeout": "600",
+      "interval": "10m"
     },
     {
       "id": 13,
@@ -829,7 +833,9 @@
             }
           }
         }
-      ]
+      ],
+      "cacheTimeout": "600",
+      "interval": "10m"
     },
     {
       "id": 14,
@@ -942,7 +948,9 @@
           "fields": "",
           "values": false
         }
-      }
+      },
+      "cacheTimeout": "600",
+      "interval": "10m"
     },
     {
       "id": 15,
@@ -1055,10 +1063,653 @@
           "fields": "",
           "values": false
         }
+      },
+      "cacheTimeout": "600",
+      "interval": "10m"
+    },
+    {
+      "id": 203,
+      "type": "row",
+      "title": "Kubernetes namespace attribution",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 50
+      },
+      "panels": []
+    },
+    {
+      "id": 20,
+      "title": "Cost by namespace (GCP, BQ labels)",
+      "type": "barchart",
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 0,
+        "y": 51
+      },
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bq-billing-export"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-bigquery-datasource",
+            "uid": "bq-billing-export"
+          },
+          "rawSql": "SELECT sl.value AS namespace, ROUND(SUM(cost), 4) AS cost FROM `dstepanov-gke-platform.billing_export.gcp_billing_export_resource_v1_*`, UNNEST(system_labels) AS sl WHERE DATE(usage_start_time) >= DATE_TRUNC(CURRENT_DATE(\"America/Los_Angeles\"), MONTH) AND sl.key = \"goog-k8s-namespace\" GROUP BY namespace ORDER BY cost DESC LIMIT 15",
+          "format": 1,
+          "editorMode": "code",
+          "location": "US",
+          "project": "dstepanov-gke-platform"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "namespace",
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "title": "Pod-level cost by namespace (AWS, SCAD)",
+      "type": "barchart",
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 8,
+        "y": 51
+      },
+      "datasource": {
+        "type": "grafana-athena-datasource",
+        "uid": "aws-athena-cur"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-athena-datasource",
+            "uid": "aws-athena-cur"
+          },
+          "rawSQL": "SELECT resource_tags['aws_eks_namespace'] AS namespace, ROUND(SUM(split_line_item_split_cost + line_item_unblended_cost), 4) AS cost FROM multi_cloud_finops.\"data\" WHERE resource_tags['aws_eks_namespace'] IS NOT NULL AND DATE(line_item_usage_start_date) >= DATE_TRUNC('month', current_date) GROUP BY resource_tags['aws_eks_namespace'] ORDER BY cost DESC",
+          "format": 1,
+          "table": "\"data\"",
+          "database": "multi_cloud_finops",
+          "connectionArgs": {
+            "catalog": "AwsDataCatalog",
+            "database": "multi_cloud_finops",
+            "region": "__default",
+            "resultReuseEnabled": false,
+            "resultReuseMaxAgeInMinutes": 60
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "namespace",
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "title": "Cost by resource group (Azure, subscription scope)",
+      "type": "barchart",
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 16,
+        "y": 51
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "azure-cost-management"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "https://management.azure.com/subscriptions/c395c797-0fbf-40e6-b1f8-b9a1eee8d838/providers/Microsoft.CostManagement/query?api-version=2024-08-01",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"type\": \"ActualCost\", \"timeframe\": \"BillingMonthToDate\", \"dataset\": {\"granularity\": \"None\", \"aggregation\": {\"totalCost\": {\"name\": \"Cost\", \"function\": \"Sum\"}}, \"grouping\": [{\"type\": \"Dimension\", \"name\": \"ResourceGroupName\"}]}}",
+            "body_type": "raw",
+            "body_content_type": "application/json"
+          },
+          "parser": "backend",
+          "root_selector": "properties.rows",
+          "columns": [
+            {
+              "selector": "0",
+              "text": "cost",
+              "type": "number"
+            },
+            {
+              "selector": "1",
+              "text": "resource_group",
+              "type": "string"
+            },
+            {
+              "selector": "2",
+              "text": "currency",
+              "type": "string"
+            }
+          ],
+          "filters": [],
+          "computed_columns": [],
+          "global_query_id": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "resource_group",
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "cacheTimeout": "600",
+      "interval": "10m"
+    },
+    {
+      "id": 300,
+      "type": "row",
+      "title": "OCI (Usage API, Always Free)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 62
+      },
+      "panels": []
+    },
+    {
+      "id": 30,
+      "title": "Month-to-date spend (OCI, Always Free)",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 63
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "web-urls"
+      },
+      "cacheTimeout": "3600",
+      "targets": [
+        {
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "https://sre.dstepanov.dev/api/oci-usage",
+          "url_options": {
+            "method": "GET",
+            "data": "",
+            "body_type": "raw"
+          },
+          "parser": "backend",
+          "root_selector": "items",
+          "columns": [
+            {
+              "selector": "cost",
+              "text": "cost_usd",
+              "type": "number"
+            },
+            {
+              "selector": "service",
+              "text": "service",
+              "type": "string"
+            }
+          ],
+          "filters": [],
+          "computed_columns": [],
+          "global_query_id": "",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "web-urls"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.01
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "service"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "/^cost_usd$/",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 31,
+      "title": "Usage by service (OCI, 30d quantity)",
+      "type": "barchart",
+      "gridPos": {
+        "h": 10,
+        "w": 16,
+        "x": 8,
+        "y": 63
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "web-urls"
+      },
+      "cacheTimeout": "3600",
+      "targets": [
+        {
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "https://sre.dstepanov.dev/api/oci-usage",
+          "url_options": {
+            "method": "GET",
+            "data": "",
+            "body_type": "raw"
+          },
+          "parser": "backend",
+          "root_selector": "items",
+          "columns": [
+            {
+              "selector": "quantity",
+              "text": "quantity",
+              "type": "number"
+            },
+            {
+              "selector": "service",
+              "text": "service",
+              "type": "string"
+            }
+          ],
+          "filters": [],
+          "computed_columns": [],
+          "global_query_id": "",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "web-urls"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "service",
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "transformations": [
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "service": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "quantity": {
+                "aggregations": [
+                  "sum"
+                ],
+                "operation": "aggregate"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 400,
+      "type": "row",
+      "title": "Cloudflare (Workers Paid + Analytics Engine)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 74
+      },
+      "panels": []
+    },
+    {
+      "id": 40,
+      "title": "Monthly cost (CF Workers Paid)",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 75
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "web-urls"
+      },
+      "cacheTimeout": "3600",
+      "targets": [
+        {
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "https://sre.dstepanov.dev/api/cf-usage",
+          "url_options": {
+            "method": "GET",
+            "data": "",
+            "body_type": "raw"
+          },
+          "parser": "backend",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "cost_usd",
+              "text": "cost_usd",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "computed_columns": [],
+          "global_query_id": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^cost_usd$/",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 41,
+      "title": "Requests (30d, Analytics Engine)",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 75
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "web-urls"
+      },
+      "cacheTimeout": "3600",
+      "targets": [
+        {
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "https://sre.dstepanov.dev/api/cf-usage",
+          "url_options": {
+            "method": "GET",
+            "data": "",
+            "body_type": "raw"
+          },
+          "parser": "backend",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "requests_30d",
+              "text": "requests_30d",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "computed_columns": [],
+          "global_query_id": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^requests_30d$/",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 42,
+      "title": "Cost per 1k requests",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 75
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "web-urls"
+      },
+      "cacheTimeout": "3600",
+      "targets": [
+        {
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "https://sre.dstepanov.dev/api/cf-usage",
+          "url_options": {
+            "method": "GET",
+            "data": "",
+            "body_type": "raw"
+          },
+          "parser": "backend",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "cost_per_1k_requests",
+              "text": "cost_per_1k",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "computed_columns": [],
+          "global_query_id": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1.0
+              },
+              {
+                "color": "green",
+                "value": 0.01
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^cost_per_1k$/",
+          "values": false
+        }
       }
     }
   ],
-  "refresh": "1h",
+  "refresh": "6h",
   "schemaVersion": 38,
   "style": "dark",
   "tags": [
@@ -1081,6 +1732,6 @@
   "timezone": "browser",
   "title": "Multi-cloud cost - MTD + burn rate",
   "uid": "mcf-gcp-mtd",
-  "version": 5,
+  "version": 13,
   "weekStart": ""
 }
