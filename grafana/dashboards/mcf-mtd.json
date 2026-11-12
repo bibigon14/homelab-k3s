@@ -1114,7 +1114,8 @@
           "decimals": 4,
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "noValue": "GKE Cost Allocation activated 2026-11-12 09:03 PT.\nFirst-time backfill up to 48h.\nPanel self-populates when goog-k8s-namespace\nsystem_labels appear in Detailed BQ export."
         },
         "overrides": []
       },
