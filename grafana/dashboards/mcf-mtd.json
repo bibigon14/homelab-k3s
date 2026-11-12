@@ -537,7 +537,7 @@
       "type": "stat",
       "gridPos": {
         "h": 5,
-        "w": 24,
+        "w": 8,
         "x": 0,
         "y": 34
       },
@@ -830,6 +830,232 @@
           }
         }
       ]
+    },
+    {
+      "id": 14,
+      "title": "Burn rate (Azure)",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 34
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "azure-cost-management"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "https://management.azure.com/subscriptions/c395c797-0fbf-40e6-b1f8-b9a1eee8d838/providers/Microsoft.CostManagement/query?api-version=2024-08-01",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"type\": \"ActualCost\", \"timeframe\": \"MonthToDate\", \"dataset\": {\"granularity\": \"None\", \"aggregation\": {\"totalCost\": {\"name\": \"Cost\", \"function\": \"Sum\"}}}}",
+            "body_type": "raw",
+            "body_content_type": "application/json"
+          },
+          "parser": "backend",
+          "root_selector": "properties.rows",
+          "columns": [
+            {
+              "selector": "0",
+              "text": "cost_usd",
+              "type": "number"
+            },
+            {
+              "selector": "1",
+              "text": "currency",
+              "type": "string"
+            }
+          ],
+          "filters": [],
+          "computed_columns": [],
+          "global_query_id": ""
+        }
+      ],
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "alias": "burn_rate",
+            "binary": {
+              "left": "cost_usd",
+              "operator": "*",
+              "right": "0.2727"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "cost_usd": true,
+              "currency": true
+            },
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1.0
+              },
+              {
+                "color": "red",
+                "value": 1.5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "Projected month-end (Azure)",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 34
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "azure-cost-management"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "https://management.azure.com/subscriptions/c395c797-0fbf-40e6-b1f8-b9a1eee8d838/providers/Microsoft.CostManagement/query?api-version=2024-08-01",
+          "url_options": {
+            "method": "POST",
+            "data": "{\"type\": \"ActualCost\", \"timeframe\": \"MonthToDate\", \"dataset\": {\"granularity\": \"None\", \"aggregation\": {\"totalCost\": {\"name\": \"Cost\", \"function\": \"Sum\"}}}}",
+            "body_type": "raw",
+            "body_content_type": "application/json"
+          },
+          "parser": "backend",
+          "root_selector": "properties.rows",
+          "columns": [
+            {
+              "selector": "0",
+              "text": "cost_usd",
+              "type": "number"
+            },
+            {
+              "selector": "1",
+              "text": "currency",
+              "type": "string"
+            }
+          ],
+          "filters": [],
+          "computed_columns": [],
+          "global_query_id": ""
+        }
+      ],
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "alias": "projected_usd",
+            "binary": {
+              "left": "cost_usd",
+              "operator": "*",
+              "right": "2.7273"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "cost_usd": true,
+              "currency": true
+            },
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10.0
+              },
+              {
+                "color": "red",
+                "value": 15.0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
     }
   ],
   "refresh": "1h",
@@ -855,6 +1081,6 @@
   "timezone": "browser",
   "title": "Multi-cloud cost - MTD + burn rate",
   "uid": "mcf-gcp-mtd",
-  "version": 3,
+  "version": 5,
   "weekStart": ""
 }
